@@ -1,0 +1,11 @@
+nibabel
+nilearn
+numpy
+pandas
+scipy
+pingouin
+docker
+dipy
+scikit-learn
+matplotlib
+pwlf

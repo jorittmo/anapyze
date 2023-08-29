@@ -1,0 +1,17 @@
+*.hdr filter=lfs diff=lfs merge=lfs -text
+*.img filter=lfs diff=lfs merge=lfs -text
+*.nii filter=lfs diff=lfs merge=lfs -text
+*.nii.gz filter=lfs diff=lfs merge=lfs -text
+*.xlsx filter=lfs diff=lfs merge=lfs -text
+*.csv filter=lfs diff=lfs merge=lfs -text
+resources/adni/* filter=lfs diff=lfs merge=lfs -text
+resources/atlas/* filter=lfs diff=lfs merge=lfs -text
+resources/mask/* filter=lfs diff=lfs merge=lfs -text
+resources/reference_regions/* filter=lfs diff=lfs merge=lfs -text
+resources/templates/* filter=lfs diff=lfs merge=lfs -text
+resources/templates/* filter=lfs diff=lfs merge=lfs -text
+resources/fruitcake/bin/* filter=lfs diff=lfs merge=lfs -text
+resources/fruitcake/book/lib/* filter=lfs diff=lfs merge=lfs -text
+resources/fruitcake/analyzetonii filter=lfs diff=lfs merge=lfs -text
+resources/fruitcake/niitoanalyze filter=lfs diff=lfs merge=lfs -text
+resources/fruitcake/dicom2nii filter=lfs diff=lfs merge=lfs -text
