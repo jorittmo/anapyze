@@ -11,14 +11,21 @@ class adni(object):
         self.adni_csv_dir = join(dir_,'resources', 'adni')
 
         amyloid_csv = join(self.adni_csv_dir, 'UCBERKELEY_AMY_6MM_13Sep2023.csv')
-        print('Amyloid csv = %s' % amyloid_csv)
+
+        csf_csv = join(self.adni_csv_dir, 'CSF.xlsx')
+
 
         self.amyloid_df = pd.read_csv(amyloid_csv)
+        self.csf_df = pd.read_excel(csf_csv)
 
-    def is_subject_amyloid_positive(self, subject_id, date='baseline'):
+    def is_subject_amyloid_positive(self, subject_id=False, rid=False, date='baseline'):
 
-        rid = int(subject_id[-4:])
+        if subject_id:
+            rid = int(subject_id[-4:])
+        elif not subject_id and not rid:
+            raise ValueError("Subject_ID or RID must be provided")
         df_subj = self.amyloid_df.loc[self.amyloid_df['RID'] == rid]
+        print(df_subj)
 
         if not df_subj.empty:
 
@@ -37,4 +44,35 @@ class adni(object):
             return tracer, suvr, amyloid_status, centiloids
 
         else:
-            return False
+            return False, False, False, False
+
+    def get_csf_biomarkers(self,subject_id=False, rid=False, date='baseline'):
+
+        if subject_id:
+            rid = int(subject_id[-4:])
+        elif not subject_id and not rid:
+            raise ValueError("Subject_ID or RID must be provided")
+
+        df_subj = self.csf_df.loc[self.csf_df['RID'] == rid]
+
+        if not df_subj.empty:
+
+            if date == 'baseline':
+                ordered = df_subj.sort_values(by=['EXAMDATE'], ascending=True)
+            elif date == 'last':
+                ordered = df_subj.sort_values(by=['EXAMDATE'], ascending=False)
+            else:
+                raise Exception('Not yet implemented')
+
+            ab42 = ordered['ABETA42'].values[0]
+            tau = ordered['TAU'].values[0]
+            ptau = ordered['PTAU'].values[0]
+
+            print(ab42, tau, ptau)
+
+            return ab42, tau, ptau
+
+        else:
+            return False, False, False
+
+
