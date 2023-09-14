@@ -3,8 +3,7 @@ import subprocess
 import nibabel as nib
 import numpy as np
 
-import pydicom
-from pydicom2nifti.convert_dicom import dicom_series_to_nifti
+
 from scipy.ndimage import zoom
 
 # This is an effort to convert all the fruitcake library to python
@@ -64,17 +63,6 @@ def convert_dicom_to_nifti_dcm2niix(input_folder, output_folder, output_filename
     # Run dcm2niix command to convert DICOM to NIfTI
     command = f"dcm2niix -o {output_folder} -f {output_filename} {input_folder}"
     subprocess.run(command, shell=True)
-
-def convert_dicom_to_nifti_python(input_folder, output_folder, output_filename):
-    # Convert DICOM series to NIfTI using pydicom2nifti
-    dicom_series_to_nifti(input_folder, output_folder)
-    
-    # Rename the output NIfTI file
-    nifti_files = [f for f in os.listdir(output_folder) if f.endswith('.nii.gz')]
-    if len(nifti_files) == 1:
-        old_path = os.path.join(output_folder, nifti_files[0])
-        new_path = os.path.join(output_folder, output_filename + '.nii.gz')
-        os.rename(old_path, new_path)
 
 def add_poisson_noise(input_filepath, output_filepath, intensity_scaling_factor=1.0):
     # Load NIfTI or Analyze image

@@ -8,9 +8,9 @@ class adni(object):
     def __init__(self):
 
         dir_ = pathlib.Path(__file__).parent.resolve()
-        self.adni_csv_dir = join(dir_,'resources', 'ADNI_CSVs')
+        self.adni_csv_dir = join(dir_,'resources', 'adni')
 
-        amyloid_csv = join(self.adni_csv_dir, 'UCBERKELEY_AMY_6MM_12Jul2023.csv')
+        amyloid_csv = join(self.adni_csv_dir, 'UCBERKELEY_AMY_6MM_13Sep2023.csv')
         print('Amyloid csv = %s' % amyloid_csv)
 
         self.amyloid_df = pd.read_csv(amyloid_csv)
@@ -23,9 +23,9 @@ class adni(object):
         if not df_subj.empty:
 
             if date == 'baseline':
-                ordered = df_subj.sort_values(by=['EXAMDATE'], ascending=True)
+                ordered = df_subj.sort_values(by=['SCANDATE'], ascending=True)
             elif date == 'last':
-                ordered = df_subj.sort_values(by=['EXAMDATE'], ascending=False)
+                ordered = df_subj.sort_values(by=['SCANDATE'], ascending=False)
             else:
                 raise Exception('Not yet implemented')
 
