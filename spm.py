@@ -675,17 +675,17 @@ class SPM(object):
         new_spm.write(design_type + "TPMC.dartel = " + "0" + ";\n")
 
         new_spm.write(design_type + "atlas.native = " + "0" + ";\n")
-        new_spm.write(design_type + "label.native = " + "0" + ";\n")
+        new_spm.write(design_type + "label.native = " + "1" + ";\n")
         new_spm.write(design_type + "label.warped = " + "0" + ";\n")
         new_spm.write(design_type + "label.dartel = " + "0" + ";\n")
-        new_spm.write(design_type + "labelnative = " + "0" + ";\n")
+        new_spm.write(design_type + "labelnative = " + "1" + ";\n")
 
         new_spm.write(design_type + "bias.native = " + "0" + ";\n")
-        new_spm.write(design_type + "bias.warped = " + "0" + ";\n")
+        new_spm.write(design_type + "bias.warped = " + "1" + ";\n")
         new_spm.write(design_type + "bias.dartel = " + "0" + ";\n")
 
         new_spm.write(design_type + "las.native = " + "0" + ";\n")
-        new_spm.write(design_type + "las.warped = " + "0" + ";\n")
+        new_spm.write(design_type + "las.warped = " + "1" + ";\n")
         new_spm.write(design_type + "las.dartel = " + "0" + ";\n")
 
         new_spm.write(design_type + "jacobianwarped = " + "0" + ";\n")
