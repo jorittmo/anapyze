@@ -24,7 +24,7 @@ class SPM(object):
         if not exists(self.spm_path):
             raise FileNotFoundError(f"{self.mcr_path} is not found.")
 
-        self.spm_run = '%s/run_spm12.sh %s batch' % self.spm_path, self.mcr_path
+        self.spm_run = '%s/run_spm12.sh %s batch' % (self.spm_path, self.mcr_path)
 
 
     def run_mfile(self, mfile):
@@ -519,17 +519,10 @@ class SPM(object):
 
         new_spm.close()
 
-    def cat12seg_imgs(self, images_to_seg, template_tpm, template_volumes,number_of_cores=4,
-                        biasacc=0.5, APP=1070, kamap=0, LASstr=0.5, gcutstr=2, WMHC=1, regstr=0.5,
-                        output_vox_size=1.5, restypes_optimal="[1 0.1]", out_surf=0, out_surf_measure=0,
-                        atlas_nm=0, atlas_lbpa=0, atlas_cobra=0, atlas_hammers=0, atlas_custom=False,
-                        gm_native=0, gm_modul=1, gm_dartel=0, wm_native=0, wm_modul=1, wm_dartel=0,
-                        csf_native=0, csf_modul=1, csf_warped=0, csf_dartel=0, ct_native=0, ct_warped=0, ct_dartel=0,
-                        pp_native=0, pp_warped=0, pp_dartel=0, wmh_native=0, wmh_modul=0, wmh_warped=0, wmh_dartel=0,
-                        sl_native=0, sl_modul=0, sl_warped=0, sl_dartel=0, tpmc_native=0,tpmc_modul=0, tpmc_warped=0, tpmc_dartel=0,
-                        atlas_native=0, labels_native=1, labels_warped=0, labels_dartel=0, bias_warped=1,
-                        las_native=0, las_warped=0, las_dartel=0, jacobian_warped=0,
-                        output_warps="[1 0]", run=False):
+    def cat12seg_imgs(self, images_to_seg, template_tpm, template_volumes, number_of_cores=0,
+                      output_vox_size=1.5, bounding_box = 'cat12', surface_processing = 0,
+                      atlas_hammers = 0, atlas_aal = 0, atlas_suit = 0, atlas_schaefer100=0,
+                      atlas_custom=False, run=False):
 
         """
         This function creates a mfile to later run with MATLAB.
@@ -555,83 +548,149 @@ class SPM(object):
         new_spm.write(design_type + "nproc = " + str(number_of_cores) + ";\n")
         new_spm.write(design_type + "useprior = '';" + "\n")
         new_spm.write(design_type + "opts.tpm = {'" + template_tpm + "'};\n")
-        new_spm.write(design_type + "useprior = '';" + "\n")
-        new_spm.write(design_type + "opts.affreg = 'mni';" + "\n")
-        new_spm.write(design_type + "opts.biasacc = " + str(biasacc) + ";\n")
 
-        new_spm.write(design_type + "extopts.APP = " + str(APP) + ";\n")
-        new_spm.write(design_type + "extopts.spm_kamap = " + str(kamap) + ";\n")
-        new_spm.write(design_type + "extopts.LASstr = " + str(LASstr) + ";\n")
-        new_spm.write(design_type + "extopts.gcutstr = " + str(gcutstr) + ";\n")
-        new_spm.write(design_type + "extopts.WMHC = " + str(WMHC) + ";\n")
-        new_spm.write(design_type + "extopts.registration.shooting.shootingtpm = {'" + template_volumes + "'};\n")
-        new_spm.write(design_type + "extopts.registration.shooting.regstr = " + str(regstr) + ";\n")
-        new_spm.write(design_type + "extopts.vox = " + str(output_vox_size) + ";\n")
-        new_spm.write(design_type + "extopts.restypes.optimal = " + restypes_optimal + ";\n")
-        new_spm.write(design_type + "extopts.ignoreErrors = 1;\n")
+        design_type = "matlabbatch{1}.spm.tools.cat.estwrite.opts."
 
-        design_outputs = design_type + "output."
+        new_spm.write(design_type + "affreg = 'mni';" + "\n")
+        new_spm.write(design_type + "biasacc = " + "0.5" + ";\n")
+        new_spm.write(design_type + "accstr = " + "0.5" + ";\n")
 
-        new_spm.write(design_outputs + "surface = " + str(out_surf) + ";\n")
-        new_spm.write(design_outputs + "surf_measures = " + str(out_surf_measure) + ";\n")
-        new_spm.write(design_outputs + "ROImenu.atlases.neuromorphometrics = " + str(atlas_nm) + ";\n")
-        new_spm.write(design_outputs + "ROImenu.atlases.lpba40 = " + str(atlas_lbpa) + ";\n")
-        new_spm.write(design_outputs + "ROImenu.atlases.cobra = " + str(atlas_cobra) + ";\n")
-        new_spm.write(design_outputs + "ROImenu.atlases.hammers = " + str(atlas_hammers) + ";\n")
-        if not atlas_custom:
-            new_spm.write(design_outputs + "ROImenu.atlases.ownatlas = {''};\n")
+        design_type = "matlabbatch{1}.spm.tools.cat.estwrite.extopts.segmentation."
+
+        new_spm.write(design_type + "restypes.optimal = " +"[1 0.3]" + ";\n")
+        new_spm.write(design_type + "setCOM = " + "1" + ";\n")
+        new_spm.write(design_type + "APP = " + "1070" + ";\n")
+        new_spm.write(design_type + "affmod = " + "0" + ";\n")
+        new_spm.write(design_type + "NCstr = " + "-Inf" + ";\n")
+        new_spm.write(design_type + "spm_kamap = " + "0" + ";\n")
+        new_spm.write(design_type + "LASstr = " + "0.5" + ";\n")
+        new_spm.write(design_type + "LASmyostr = " + "0" + ";\n")
+        new_spm.write(design_type + "gcutstr = " + "2" + ";\n")
+        new_spm.write(design_type + "cleanupstr = " + "0.5" + ";\n")
+        new_spm.write(design_type + "BVCstr = " + "0.5" + ";\n")
+        new_spm.write(design_type + "WMHC = " + "2" + ";\n")
+        new_spm.write(design_type + "SLC = " + "0" + ";\n")
+        new_spm.write(design_type + "mrf = " + "1" + ";\n")
+
+        design_type = "matlabbatch{1}.spm.tools.cat.estwrite.extopts.registration."
+
+        new_spm.write(design_type + "regmethod.shooting.shootingtpm = {'" + template_volumes + "'};\n")
+        new_spm.write(design_type + "regmethod.shooting.regstr = " + "0.5" + ";\n")
+        new_spm.write(design_type + "vox = " + str(output_vox_size) + ";\n")
+
+        if bounding_box=='cat12':
+            new_spm.write(design_type + "bb = " + "12" + ";\n")
+        elif bounding_box=='spm':
+            new_spm.write(design_type + "bb = " + "16" + ";\n")
         else:
-            new_spm.write(design_outputs + "ROImenu.atlases.ownatlas = {'" + atlas_custom + "'};\n")
+            raise ValueError("Bounding Box must be set to spm or cat12")
 
-        new_spm.write(design_outputs + "GM.native = " + str(gm_native) + ";\n")
-        new_spm.write(design_outputs + "GM.mod = " + str(gm_modul) + ";\n")
-        new_spm.write(design_outputs + "GM.dartel = " + str(gm_dartel) + ";\n")
+        design_type = "matlabbatch{1}.spm.tools.cat.estwrite.extopts.surface."
 
-        new_spm.write(design_outputs + "WM.native = " + str(wm_native) + ";\n")
-        new_spm.write(design_outputs + "WM.mod = " + str(wm_modul) + ";\n")
-        new_spm.write(design_outputs + "WM.dartel = " + str(wm_dartel) + ";\n")
+        new_spm.write(design_type + "pbtres = " + "0.5" + ";\n")
+        new_spm.write(design_type + "pbtmethod = " + "'pbt2x'" + ";\n")
+        new_spm.write(design_type + "SRP = " + "22" + ";\n")
+        new_spm.write(design_type + "reduce_mesh = " + "1" + ";\n")
+        new_spm.write(design_type + "vdist = " + "2" + ";\n")
+        new_spm.write(design_type + "scale_cortex = " + "0.7" + ";\n")
+        new_spm.write(design_type + "add_parahipp = " + "0.1" + ";\n")
+        new_spm.write(design_type + "close_parahipp = " + "1" + ";\n")
 
-        new_spm.write(design_outputs + "CSF.native = " + str(csf_native) + ";\n")
-        new_spm.write(design_outputs + "CSF.warped = " + str(csf_warped) + ";\n")
-        new_spm.write(design_outputs + "CSF.mod = " + str(csf_modul) + ";\n")
-        new_spm.write(design_outputs + "CSF.dartel = " + str(csf_dartel) + ";\n")
+        design_type = "matlabbatch{1}.spm.tools.cat.estwrite.extopts.admin."
 
-        new_spm.write(design_outputs + "ct.native = " + str(ct_native) + ";\n")
-        new_spm.write(design_outputs + "ct.warped = " + str(ct_warped) + ";\n")
-        new_spm.write(design_outputs + "ct.dartel = " + str(ct_dartel) + ";\n")
+        new_spm.write(design_type + "experimental = " + "0" + ";\n")
+        new_spm.write(design_type + "new_release = " + "0" + ";\n")
+        new_spm.write(design_type + "lazy = " + "0" + ";\n")
+        new_spm.write(design_type + "ignoreErrors = " + "1" + ";\n")
+        new_spm.write(design_type + "verb = " + "2" + ";\n")
+        new_spm.write(design_type + "print = " + "2" + ";\n")
 
-        new_spm.write(design_outputs + "pp.native = " + str(pp_native) + ";\n")
-        new_spm.write(design_outputs + "pp.warped = " + str(pp_warped) + ";\n")
-        new_spm.write(design_outputs + "pp.dartel = " + str(pp_dartel) + ";\n")
+        design_type = "matlabbatch{1}.spm.tools.cat.estwrite.output."
 
-        new_spm.write(design_outputs + "WMH.native = " + str(wmh_native) + ";\n")
-        new_spm.write(design_outputs + "WMH.warped = " + str(wmh_warped) + ";\n")
-        new_spm.write(design_outputs + "WMH.mod = " + str(wmh_modul) + ";\n")
-        new_spm.write(design_outputs + "WMH.dartel = " + str(wmh_dartel) + ";\n")
+        new_spm.write(design_type + "BIDS.BIDSno = " + "1" + ";\n")
+        new_spm.write(design_type + "surface = " + str(surface_processing) + ";\n")
+        new_spm.write(design_type + "surf_measures = " + str(surface_processing) + ";\n")
 
-        new_spm.write(design_outputs + "SL.native = " + str(sl_native) + ";\n")
-        new_spm.write(design_outputs + "SL.warped = " + str(sl_warped) + ";\n")
-        new_spm.write(design_outputs + "SL.mod = " + str(sl_modul) + ";\n")
-        new_spm.write(design_outputs + "SL.dartel = " + str(sl_dartel) + ";\n")
+        design_type = "matlabbatch{1}.spm.tools.cat.estwrite.output.ROImenu.atlases."
 
-        new_spm.write(design_outputs + "TPMC.native = " + str(tpmc_native) + ";\n")
-        new_spm.write(design_outputs + "TPMC.warped = " + str(tpmc_warped) + ";\n")
-        new_spm.write(design_outputs + "TPMC.mod = " + str(tpmc_modul) + ";\n")
-        new_spm.write(design_outputs + "TPMC.dartel = " + str(tpmc_dartel) + ";\n")
+        new_spm.write(design_type + "neuromorphometrics = " + "0" + ";\n")
+        new_spm.write(design_type + "lpba40 = " + "0" + ";\n")
+        new_spm.write(design_type + "cobra = " + "0" + ";\n")
+        new_spm.write(design_type + "hammers = " + str(atlas_hammers) + ";\n")
+        new_spm.write(design_type + "thalamus = " + "0" + ";\n")
+        new_spm.write(design_type + "thalamic_nuclei = " + "0" + ";\n")
+        new_spm.write(design_type + "suit = " + str(atlas_suit) + ";\n")
+        new_spm.write(design_type + "ibsr = " + "0" + ";\n")
+        new_spm.write(design_type + "aal3 = " + str(atlas_aal) + ";\n")
+        new_spm.write(design_type + "mori = " + "0" + ";\n")
+        new_spm.write(design_type + "anatomy3 = " + "0" + ";\n")
+        new_spm.write(design_type + "julichbrain = " + "0" + ";\n")
+        new_spm.write(design_type + "Schaefer2018_100Parcels_17Networks_order = " + str(atlas_schaefer100) + ";\n")
+        new_spm.write(design_type + "Schaefer2018_200Parcels_17Networks_order = " + "0" + ";\n")
+        new_spm.write(design_type + "Schaefer2018_400Parcels_17Networks_order = " + "0" + ";\n")
+        new_spm.write(design_type + "Schaefer2018_600Parcels_17Networks_order = " + "0" + ";\n")
+        if not atlas_custom:
+            new_spm.write(design_type + "ownatlas = " + "{''}" + ";\n")
+        else:
+            new_spm.write(design_type + "ownatlas = " + "{'"+ atlas_custom +"'}" + ";\n")
 
-        new_spm.write(design_outputs + "atlas.native = " + str(atlas_native) + ";\n")
+        design_type = "matlabbatch{1}.spm.tools.cat.estwrite.output."
 
-        new_spm.write(design_outputs + "label.native = " + str(labels_native) + ";\n")
-        new_spm.write(design_outputs + "label.warped = " + str(labels_warped) + ";\n")
-        new_spm.write(design_outputs + "label.dartel = " + str(labels_dartel) + ";\n")
-        new_spm.write(design_outputs + "labelnative = " + str(labels_native) + ";\n")
+        new_spm.write(design_type + "GM.native = " + "0" + ";\n")
+        new_spm.write(design_type + "GM.warped = " + "0" + ";\n")
+        new_spm.write(design_type + "GM.mod = " + "1" + ";\n")
+        new_spm.write(design_type + "GM.dartel = " + "0" + ";\n")
 
-        new_spm.write(design_outputs + "bias.warped = " + str(bias_warped) + ";\n")
-        new_spm.write(design_outputs + "las.native = " + str(las_native) + ";\n")
-        new_spm.write(design_outputs + "las.warped = " + str(las_warped) + ";\n")
-        new_spm.write(design_outputs + "las.dartel = " + str(las_dartel) + ";\n")
-        new_spm.write(design_outputs + "jacobianwarped = " + str(jacobian_warped) + ";\n")
-        new_spm.write(design_outputs + "warps = " + output_warps + ";\n")
+        new_spm.write(design_type + "WM.native = " + "0" + ";\n")
+        new_spm.write(design_type + "WM.warped = " + "0" + ";\n")
+        new_spm.write(design_type + "WM.mod = " + "1" + ";\n")
+        new_spm.write(design_type + "WM.dartel = " + "0" + ";\n")
+
+        new_spm.write(design_type + "CSF.native = " + "0" + ";\n")
+        new_spm.write(design_type + "CSF.warped = " + "0" + ";\n")
+        new_spm.write(design_type + "CSF.mod = " + "1" + ";\n")
+        new_spm.write(design_type + "CSF.dartel = " + "0" + ";\n")
+
+        new_spm.write(design_type + "ct.native = " + "0" + ";\n")
+        new_spm.write(design_type + "ct.warped = " + "0" + ";\n")
+        new_spm.write(design_type + "ct.dartel = " + "0" + ";\n")
+
+        new_spm.write(design_type + "pp.native = " + "0" + ";\n")
+        new_spm.write(design_type + "pp.warped = " + "0" + ";\n")
+        new_spm.write(design_type + "pp.dartel = " + "0" + ";\n")
+
+        new_spm.write(design_type + "WMH.native = " + "0" + ";\n")
+        new_spm.write(design_type + "WMH.warped = " + "0" + ";\n")
+        new_spm.write(design_type + "WMH.mod = " + "0" + ";\n")
+        new_spm.write(design_type + "WMH.dartel = " + "0" + ";\n")
+
+        new_spm.write(design_type + "SL.native = " + "0" + ";\n")
+        new_spm.write(design_type + "SL.warped = " + "0" + ";\n")
+        new_spm.write(design_type + "SL.mod = " + "0" + ";\n")
+        new_spm.write(design_type + "SL.dartel = " + "0" + ";\n")
+
+        new_spm.write(design_type + "TPMC.native = " + "0" + ";\n")
+        new_spm.write(design_type + "TPMC.warped = " + "0" + ";\n")
+        new_spm.write(design_type + "TPMC.mod = " + "0" + ";\n")
+        new_spm.write(design_type + "TPMC.dartel = " + "0" + ";\n")
+
+        new_spm.write(design_type + "atlas.native = " + "0" + ";\n")
+        new_spm.write(design_type + "label.native = " + "0" + ";\n")
+        new_spm.write(design_type + "label.warped = " + "0" + ";\n")
+        new_spm.write(design_type + "label.dartel = " + "0" + ";\n")
+        new_spm.write(design_type + "labelnative = " + "0" + ";\n")
+
+        new_spm.write(design_type + "bias.native = " + "0" + ";\n")
+        new_spm.write(design_type + "bias.warped = " + "0" + ";\n")
+        new_spm.write(design_type + "bias.dartel = " + "0" + ";\n")
+
+        new_spm.write(design_type + "las.native = " + "0" + ";\n")
+        new_spm.write(design_type + "las.warped = " + "0" + ";\n")
+        new_spm.write(design_type + "las.dartel = " + "0" + ";\n")
+
+        new_spm.write(design_type + "jacobianwarped = " + "0" + ";\n")
+        new_spm.write(design_type + "warps = " + "[1 0]" + ";\n")
+        new_spm.write(design_type + "rmat = " + "0" + ";\n")
 
         new_spm.close()
 
