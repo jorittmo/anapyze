@@ -3,11 +3,8 @@ import shutil
 import numpy as np
 import nibabel as nib
 from os.path import join, exists, dirname
-from qc_utils import qc_utils
-import subprocess
 
-
-class spm(object):
+class SPM(object):
 
     """
     This class will create .m scripts and parse them to matlab to run SPM.
@@ -16,12 +13,58 @@ class spm(object):
     However, this requires matlab to be in your $PATH.
     """
 
-    def __init__(self, spm_path):
+    def __init__(self, spm_path='/home/jsilva/software/cat12', mcr_path='/home/jsilva/software/Matlab_MCR/v93'):
 
         self.spm_path = spm_path
+        self.mcr_path = mcr_path
+
         if not exists(self.spm_path):
             raise FileNotFoundError(f"{self.spm_path} is not found.")
-        
+
+        if not exists(self.spm_path):
+            raise FileNotFoundError(f"{self.mcr_path} is not found.")
+
+        self.spm_run = '%s/run_spm12.sh %s batch' % self.spm_path, self.mcr_path
+
+
+    def run_mfile(self, mfile):
+
+        os.system('%s %s' % (self.spm_run, mfile))
+
+
+    def coregister(self, reference_image, source_image):
+
+        source_img_path, source_img_name = os.path.split(source_image)
+        # Set the output file name
+        mfile_name = join(source_img_path, 'coregister.m')
+
+        design_type = "matlabbatch{1}.spm.spatial.coreg.estwrite."
+
+        new_spm = open(mfile_name, "w")
+
+        new_spm.write(design_type + "ref = {'" + reference_image + ",1'};\n")
+        new_spm.write(design_type + "source = {'" + source_image + ",1'};\n")
+        new_spm.write(design_type + "other = {''};\n")
+        new_spm.write(design_type + "eoptions.cost_fun = 'nmi';\n")
+        new_spm.write(design_type + "eoptions.sep = [4 2];\n")
+        new_spm.write(
+            design_type + "eoptions.tol = [0.02 0.02 0.02 0.001 0.001 0.001 0.01 0.01 0.01 0.001 0.001 0.001];\n")
+        new_spm.write(design_type + "eoptions.fwhm = [7 7]\n;")
+        new_spm.write(design_type + "roptions.interp = 4;\n")
+        new_spm.write(design_type + "roptions.wrap = [0 0 0];\n")
+        new_spm.write(design_type + "roptions.mask = 0;\n")
+        new_spm.write(design_type + "roptions.prefix = 'r';\n")
+
+        new_spm.close()
+
+        self.run_mfile(mfile_name)
+
+        components = os.path.split(source_image)
+        output = os.path.join(components[0], "r" + components[1])
+
+        return output
+
+
     def normalize_pet(self, image_to_norm, template_image, images_to_write=False,
                       bb=None, write_vox_size='[1 1 1]', wrapping=True, interpolation=4):
 
@@ -38,9 +81,6 @@ class spm(object):
             images_to_write = [image_to_norm]
 
         new_spm = open(mfile_name, "w")
-
-        new_spm.write("addpath('%s');\n" % self.spm_path)
-        new_spm.write("addpath('%s');\n" % source_img_path)
 
         new_spm.write(
             design_type + "subj.source = {'" + image_to_norm + ",1'};\n" +
@@ -73,15 +113,9 @@ class spm(object):
             new_spm.write(design_type + "roptions.wrap = [0 0 0];" + "\n")
 
         new_spm.write(design_type + "roptions.prefix ='w';\n")
-
-        new_spm.write("spm('defaults', 'PET');\n")
-        new_spm.write("spm_jobman('initcfg');\n")
-        new_spm.write("spm_jobman('run',matlabbatch);\n")
-        new_spm.write("quit;\n")
         new_spm.close()
 
-        os.chdir(source_img_path)
-        os.system('matlab -nosplash -nodesktop -wait -r "normalize"')
+        self.run_mfile(mfile_name)
 
         components = os.path.split(images_to_write[0])
         output = os.path.join(components[0], 'w' + components[1])
@@ -89,6 +123,7 @@ class spm(object):
         transformation_matrix = image_to_norm[0:-4] + "_sn.mat"
 
         return output, transformation_matrix
+
 
     def normalize_mri(self, image_to_norm, template_image, images_to_write=False,
                       bb=None, write_vox_size='[1 1 1]', interpolation=4):
@@ -105,9 +140,6 @@ class spm(object):
             images_to_write = [image_to_norm]
 
         new_spm = open(mfile_name, "w")
-
-        new_spm.write("addpath('%s');\n" % self.spm_path)
-        new_spm.write("addpath('%s');\n" % source_img_path)
 
         new_spm.write(
             design_type + "subj.vol = {'" + image_to_norm + ",1'};" + "\n" +
@@ -132,23 +164,24 @@ class spm(object):
             design_type + "woptions.vox = " + write_vox_size + ";" + "\n" +
             design_type + "woptions.interp = " + str(interpolation) + ";" + "\n")
 
-        new_spm.write("spm('defaults', 'PET');\n")
-        new_spm.write("spm_jobman('initcfg');\n")
-        new_spm.write("spm_jobman('run',matlabbatch);\n")
-        new_spm.write("quit;\n")
         new_spm.close()
 
-        os.chdir(source_img_path)
-        os.system('matlab -nosplash -nodesktop -wait -r "normalize"')
+        self.run_mfile(mfile_name)
 
-        components_1 = os.path.split(images_to_write[0])
-        output_1 = os.path.join(components_1[0], 'w' + components_1[1])
+        deformed_images =  []
 
+        for j in images_to_write:
 
+            components = os.path.split(j)
+            output = os.path.join(components[0], 'w' + components[1])
+            deformed_images.append(output)
+
+        components_tm = os.path.split(images_to_write[0])
         matrix_name = "y_" + os.path.basename(image_to_norm)[0:-3] + "nii"
-        transformation_matrix = os.path.join(components_1[0], matrix_name)
+        transformation_matrix = os.path.join(components_tm[0], matrix_name)
 
-        return output_1, transformation_matrix
+        return deformed_images, transformation_matrix
+
 
     def new_deformations(self, def_matrix, images_to_deform, interpolation, prefix='w'):
 
@@ -160,9 +193,6 @@ class spm(object):
         design_type_out = "matlabbatch{1}.spm.util.defs.out{1}."
 
         new_spm = open(mfile_name, "w")
-
-        new_spm.write("addpath('%s');\n" % self.spm_path)
-        new_spm.write("addpath('%s');\n" % source_img_path)
 
         new_spm.write(
             design_type_comp + "def = {'" + def_matrix + "'};\n" +
@@ -181,11 +211,20 @@ class spm(object):
             design_type_out + "pull.prefix ='" + prefix + "';\n"
         )
 
-        new_spm.write("spm('defaults', 'PET');\n")
-        new_spm.write("spm_jobman('initcfg');\n")
-        new_spm.write("spm_jobman('run',matlabbatch);\n")
-        new_spm.write("quit;\n")
         new_spm.close()
+
+        self.run_mfile(mfile_name)
+
+        deformed_images =  []
+
+        for j in images_to_deform:
+
+            components = os.path.split(j)
+            output = os.path.join(components[0], 'w' + components[1])
+            deformed_images.append(output)
+
+        return deformed_images
+
 
     def old_deformations(self, def_matrix, base_image, images_to_deform, interpolation):
 
@@ -197,9 +236,6 @@ class spm(object):
         design_type_out = "matlabbatch{1}.spm.util.defs.out{1}."
 
         new_spm = open(mfile_name, "w")
-
-        new_spm.write("addpath('%s');\n" % self.spm_path)
-        new_spm.write("addpath('%s');\n" % source_img_path)
 
         new_spm.write(
             design_type_comp + "comp{1}.sn2def.matname = {'" + def_matrix + "'};" + "\n" +
@@ -219,15 +255,21 @@ class spm(object):
                       design_type_out + "pull.mask = 1;\n" +
                       design_type_out + "pull.fwhm = [0 0 0];\n"
                       )
-        
-        new_spm.write("spm('defaults', 'PET');\n")
-        new_spm.write("spm_jobman('initcfg');\n")
-        new_spm.write("spm_jobman('run',matlabbatch);\n")
-        new_spm.write("quit;\n")
+
         new_spm.close()
 
-        os.chdir(source_img_path)
-        os.system('matlab -nosplash -nodesktop -wait -r "deformations"')
+        self.run_mfile(mfile_name)
+
+        deformed_images =  []
+
+        for j in images_to_deform:
+
+            components = os.path.split(j)
+            output = os.path.join(components[0], 'w' + components[1])
+            deformed_images.append(output)
+
+        return deformed_images
+
 
     def apply_normalization_to_atlas(self, def_matrix, norm_mri, fs_atlas):
 
@@ -238,9 +280,6 @@ class spm(object):
         design_type = 'matlabbatch{1}.spm.util.defs.'
 
         new_spm = open(mfile_name, "w")
-        
-        new_spm.write("addpath('%s');\n" % self.spm_path)
-        new_spm.write("addpath('%s');\n" % source_img_path)
 
         new_spm.write(design_type + "comp{1}.inv.comp{1}.def = {'" + def_matrix + "'};\n")
         new_spm.write(design_type + "comp{1}.inv.space = {'" + norm_mri + "'};\n")
@@ -252,63 +291,15 @@ class spm(object):
         new_spm.write(design_type + "out{1}.push.fwhm = [0 0 0];\n")
         new_spm.write(design_type + "out{1}.push.prefix = 'w';\n")
 
-        new_spm.write("spm('defaults', 'PET');\n")
-        new_spm.write("spm_jobman('initcfg');\n")
-        new_spm.write("spm_jobman('run',matlabbatch);\n")
-        new_spm.write("quit;\n")
         new_spm.close()
 
-        os.chdir(source_img_path)
-        os.system('matlab -nosplash -nodesktop -wait -r "deformations"')
+        self.run_mfile(mfile_name)
 
         components = os.path.split(fs_atlas)
         output = os.path.join(components[0], "w" + components[1])
 
-        output_png = os.path.join(components[0], "deformations.png")
-        qc_utils._overlay_png(norm_mri, output, output_png)
-
-    def coregister(self, reference_image, source_image):
-
-        source_img_path, source_img_name = os.path.split(source_image)
-        # Set the output file name
-        mfile_name = join(source_img_path, 'coregister.m')
-
-        design_type = "matlabbatch{1}.spm.spatial.coreg.estwrite."
-
-        new_spm = open(mfile_name, "w")
-
-        new_spm.write("addpath('%s');\n" % self.spm_path)
-        new_spm.write("addpath('%s');\n" % source_img_path)
-
-        new_spm.write(design_type + "ref = {'" + reference_image + ",1'};\n")
-        new_spm.write(design_type + "source = {'" + source_image + ",1'};\n")
-        new_spm.write(design_type + "other = {''};\n")
-        new_spm.write(design_type + "eoptions.cost_fun = 'nmi';\n")
-        new_spm.write(design_type + "eoptions.sep = [4 2];\n")
-        new_spm.write(
-            design_type + "eoptions.tol = [0.02 0.02 0.02 0.001 0.001 0.001 0.01 0.01 0.01 0.001 0.001 0.001];\n")
-        new_spm.write(design_type + "eoptions.fwhm = [7 7]\n;")
-        new_spm.write(design_type + "roptions.interp = 4;\n")
-        new_spm.write(design_type + "roptions.wrap = [0 0 0];\n")
-        new_spm.write(design_type + "roptions.mask = 0;\n")
-        new_spm.write(design_type + "roptions.prefix = 'r';\n")
-        
-        new_spm.write("spm('defaults', 'PET');\n")
-        new_spm.write("spm_jobman('initcfg');\n")
-        new_spm.write("spm_jobman('run',matlabbatch);\n")
-        new_spm.write("quit;\n")
-        new_spm.close()
-
-        os.chdir(source_img_path)
-        os.system('matlab -nosplash -nodesktop -wait -r "coregister"')
-
-        components = os.path.split(source_image)
-        output = os.path.join(components[0], "r" + components[1])
-
-        output_png = os.path.join(components[0], "coregister.png")
-        qc_utils._overlay_png(reference_image, output, output_png)
-
         return output
+
 
     def normalize_multiple_pets(self, dir_proc, images_to_norm, template_image, cutoff=15, nits=16, reg=1,
                                              preserve=0, affine_regularization_type='mni', source_image_smoothing=8,
@@ -324,8 +315,6 @@ class spm(object):
         mfile_name = join(dir_proc,'normalize.m')
         new_spm = open(mfile_name, "w")
 
-        new_spm.write("addpath('%s');\n" % self.spm_path)
-        new_spm.write("addpath('%s');\n" % dir_proc)
 
         for i in range(len(images_to_norm)):
             new_spm.write(
@@ -355,16 +344,13 @@ class spm(object):
 
         new_spm.write(design_type + "roptions.prefix ='" + prefix + "';" + "\n")
         
-        new_spm.write("spm('defaults', 'PET');\n")
-        new_spm.write("spm_jobman('initcfg');\n")
-        new_spm.write("spm_jobman('run',matlabbatch);\n")
-        new_spm.write("quit;\n")
-        new_spm.close()
-        
-        os.chdir(dir_proc)
-        os.system('matlab -nosplash -nodesktop -wait -r "deformations"')
 
-    def smooth_imgs(self, dir_proc, images_to_smooth, smoothing):
+        new_spm.close()
+
+        self.run_mfile(mfile_name)
+
+
+    def smooth_multiple_imgs(self, dir_proc, images_to_smooth, smoothing):
 
         source_img_path, source_img_name = os.path.split(images_to_smooth[0])
         # Set the output file name
@@ -374,9 +360,6 @@ class spm(object):
         smoothing_array = "[" + str(smoothing[0]) + " " + str(smoothing[1]) + " " + str(smoothing[2]) + "]"
 
         new_spm = open(mfile_name, "w")
-
-        new_spm.write("addpath('%s');\n" % self.spm_path)
-        new_spm.write("addpath('%s');\n" % dir_proc)
 
         new_spm.write(design_type + "data = {\n")
 
@@ -388,18 +371,13 @@ class spm(object):
         new_spm.write(design_type + "dtype = 0;" + "\n")
         new_spm.write(design_type + "im = 0;" + "\n")
         new_spm.write(design_type + "prefix ='" + 's' + "';" + "\n")
-        
 
-        new_spm.write("spm('defaults', 'PET');\n")
-        new_spm.write("spm_jobman('initcfg');\n")
-        new_spm.write("spm_jobman('run',matlabbatch);\n")
-        new_spm.write("quit;\n")
         new_spm.close()
-        
-        os.chdir(dir_proc)
-        os.system('matlab -nosplash -nodesktop -wait -r  "deformations"')
 
-    def run_2sample_ttest_2_covs(self, save_dir, group1, group2, group1_ages, group2_ages, group1_tiv=False, group2_tiv=False,
+        self.run_mfile(mfile_name)
+
+
+    def run_2sample_ttest(self, save_dir, group1, group2, group1_ages, group2_ages, group1_tiv=False, group2_tiv=False,
                                  mask=False, dependence=0, variance=1, gmscaling=0, ancova=0, global_norm=1,
                                  contrast_name='contrast', contrast='[1 -1 0 0]'):
 
@@ -415,9 +393,7 @@ class spm(object):
         self.create_mfile_model(mfile_model, save_dir, group1, group2, group1_ages, group2_ages, group1_tiv, group2_tiv,
                                  mask, dependence, variance, gmscaling, ancova, global_norm)
 
-        print('%s run %s' % (self.spm_path, mfile_model))
-        os.chdir(save_dir)
-        os.system('matlab -nodisplay -nodesktop -nosplash -r "model"')
+        self.run_mfile(mfile_model)
 
         print('Estimating model....')
 
@@ -425,7 +401,8 @@ class spm(object):
         spm_mat = join(save_dir, 'SPM.mat')
 
         self.create_mfile_estimate_model(mfile_estimate, spm_mat)
-        os.system('matlab -nodisplay -nodesktop -nosplash -r "estimate"')
+
+        self.run_mfile(mfile_estimate)
 
         print('Calculating results....')
 
@@ -433,12 +410,13 @@ class spm(object):
         spm_mat = join(save_dir, 'SPM.mat')
 
         self.create_mfile_contrast(mfile_results, spm_mat, contrast_name=contrast_name, contrast=contrast)
-        os.system('matlab -nodisplay -nodesktop -nosplash -r "results"')
+        self.run_mfile(mfile_results)
 
         print('Converting results to Cohens d....')
 
         out_t_values = join(save_dir, 'spmT_0001.nii')
         out_cohens = join(save_dir, 'cohens_d.nii')
+
         self.spm_map_2_cohens_d(out_t_values, out_cohens, len(group1), len(group2))
 
         print('Calculating thresholds for Cohens d (FDR corrected ....')
@@ -451,8 +429,6 @@ class spm(object):
         design_type = "matlabbatch{1}.spm.stats.factorial_design."
 
         new_spm = open(mfile_name, "w")
-
-        new_spm.write("addpath('%s');\n" % self.spm_path)
 
         new_spm.write(
             design_type + "dir = {'" + save_dir + "/'};" + "\n" +
@@ -515,10 +491,6 @@ class spm(object):
             design_type + "globalm.glonorm = " + str(global_norm) + ";" + "\n"
         )
 
-        new_spm.write("spm('defaults', 'PET');\n")
-        new_spm.write("spm_jobman('initcfg');\n")
-        new_spm.write("spm_jobman('run',matlabbatch);\n")
-        new_spm.write("quit;\n")
         new_spm.close()
 
     def create_mfile_estimate_model(self, mfile_name, spm_mat):
@@ -527,16 +499,10 @@ class spm(object):
 
         new_spm = open(mfile_name, "w")
 
-        new_spm.write("addpath('%s');\n" % self.spm_path)
-
         new_spm.write(design_type + "spmmat = {'" + spm_mat + "'};\n")
         new_spm.write(design_type + "write_residuals = 0;")
         new_spm.write(design_type + "method.Classical = 1;")
 
-        new_spm.write("spm('defaults', 'PET');\n")
-        new_spm.write("spm_jobman('initcfg');\n")
-        new_spm.write("spm_jobman('run',matlabbatch);\n")
-        new_spm.write("quit;\n")
         new_spm.close()
 
     def create_mfile_contrast(self, mfile_name, spm_mat, contrast_name='contrast', contrast='[1 -1 0]'):
@@ -545,39 +511,29 @@ class spm(object):
 
         new_spm = open(mfile_name, "w")
 
-        new_spm.write("addpath('%s');\n" % self.spm_path)
-
         new_spm.write(design_type + "spmmat = {'" + spm_mat + "'};\n")
         new_spm.write(design_type + "consess{1}.tcon.name = '" + contrast_name + "';\n")
         new_spm.write(design_type + "consess{1}.tcon.weights =" + contrast + ";\n")
         new_spm.write(design_type + "consess{1}.tcon.sessrep = 'none';\n")
         new_spm.write(design_type + "delete = 0;\n")
 
-        new_spm.write("spm('defaults', 'PET');\n")
-        new_spm.write("spm_jobman('initcfg');\n")
-        new_spm.write("spm_jobman('run',matlabbatch);\n")
-        new_spm.write("quit;\n")
         new_spm.close()
 
-    def cat12seg_imgs(self, images_to_seg, template_tpm, template_volumes,
-                        number_of_cores=4, biasacc=0.5, APP=1070, kamap=0, LASstr=0.5,
-                        gcutstr=2, WMHC=1, regstr=0.5, output_vox_size=1.5,
-                        restypes_optimal="[1 0.1]", out_surf=0, out_surf_measure=0,
-                        atlas_nm=0, atlas_lbpa=0, atlas_cobra=0, atlas_hammers=0,
-                        atlas_custom=False,
+    def cat12seg_imgs(self, images_to_seg, template_tpm, template_volumes,number_of_cores=4,
+                        biasacc=0.5, APP=1070, kamap=0, LASstr=0.5, gcutstr=2, WMHC=1, regstr=0.5,
+                        output_vox_size=1.5, restypes_optimal="[1 0.1]", out_surf=0, out_surf_measure=0,
+                        atlas_nm=0, atlas_lbpa=0, atlas_cobra=0, atlas_hammers=0, atlas_custom=False,
                         gm_native=0, gm_modul=1, gm_dartel=0, wm_native=0, wm_modul=1, wm_dartel=0,
-                        csf_native=0, csf_modul=1, csf_warped=0, csf_dartel=0, ct_native=0,
-                        ct_warped=0, ct_dartel=0,
-                        pp_native=0, pp_warped=0, pp_dartel=0, wmh_native=0, wmh_modul=0,
-                        wmh_warped=0, wmh_dartel=0,
-                        sl_native=0, sl_modul=0, sl_warped=0, sl_dartel=0, tpmc_native=0,
-                        tpmc_modul=0, tpmc_warped=0, tpmc_dartel=0,
-                        atlas_native=0, labels_native=1, labels_warped=0, labels_dartel=0,
-                        bias_warped=1, las_native=0, las_warped=0, las_dartel=0, jacobian_warped=0,
-                        output_warps="[1 0]"):
+                        csf_native=0, csf_modul=1, csf_warped=0, csf_dartel=0, ct_native=0, ct_warped=0, ct_dartel=0,
+                        pp_native=0, pp_warped=0, pp_dartel=0, wmh_native=0, wmh_modul=0, wmh_warped=0, wmh_dartel=0,
+                        sl_native=0, sl_modul=0, sl_warped=0, sl_dartel=0, tpmc_native=0,tpmc_modul=0, tpmc_warped=0, tpmc_dartel=0,
+                        atlas_native=0, labels_native=1, labels_warped=0, labels_dartel=0, bias_warped=1,
+                        las_native=0, las_warped=0, las_dartel=0, jacobian_warped=0,
+                        output_warps="[1 0]", run=False):
 
         """
         This function creates a mfile to later run with MATLAB.
+        You can run it within spm.py stating run=True but multithreading is not available.
         mfile: Destination of the created mfile
         images_to_seg = A list of all the images you want to segment (Nifti (.nii) of Analyze (.img)).
         template_tpm = Template image to normalize the images to (something like ... PATH_TO/spm12/tpm/TPM.nii)
@@ -677,14 +633,15 @@ class spm(object):
         new_spm.write(design_outputs + "jacobianwarped = " + str(jacobian_warped) + ";\n")
         new_spm.write(design_outputs + "warps = " + output_warps + ";\n")
 
-
-        new_spm.write("spm('defaults', 'PET');\n")
-        new_spm.write("spm_jobman('initcfg');\n")
-        new_spm.write("spm_jobman('run',matlabbatch);\n")
-        new_spm.write("quit;\n")
         new_spm.close()
 
-    def cat12_new_model(self, save_dir, group1, group1_ages, group1_tivs, group2, group2_ages, group2_tivs,mask):
+        if run:
+            self.run_mfile(mfile_name)
+
+        return mfile_name
+
+
+    def run_cat12_new_model(self, save_dir, group1, group1_ages, group1_tivs, group2, group2_ages, group2_tivs,mask):
 
         if exists(save_dir):
             shutil.rmtree(save_dir)
@@ -774,14 +731,9 @@ class spm(object):
         new_spm.write(design_type + "consess{1}.tcon.sessrep = 'none';\n")
         new_spm.write(design_type + "delete = 0;\n")
 
-        new_spm.write("spm('defaults', 'PET');\n")
-        new_spm.write("spm_jobman('initcfg');\n")
-        new_spm.write("spm_jobman('run',matlabbatch);\n")
-        new_spm.write("quit;\n")
         new_spm.close()
 
-        os.chdir(save_dir)
-        os.system('matlab -nodisplay -nodesktop -nosplash -r "cat_12_vbm"')
+        self.run_mfile(mfile_name)
 
     @staticmethod
     def spm_map_2_cohens_d(img, out, len_1, len_2):

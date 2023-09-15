@@ -3,7 +3,7 @@ import pandas as pd
 from os.path import join
 
 
-class adni(object):
+class ADNI(object):
 
     def __init__(self):
 
@@ -11,9 +11,7 @@ class adni(object):
         self.adni_csv_dir = join(dir_,'resources', 'adni')
 
         amyloid_csv = join(self.adni_csv_dir, 'UCBERKELEY_AMY_6MM_13Sep2023.csv')
-
         csf_csv = join(self.adni_csv_dir, 'CSF.xlsx')
-
 
         self.amyloid_df = pd.read_csv(amyloid_csv)
         self.csf_df = pd.read_excel(csf_csv)
