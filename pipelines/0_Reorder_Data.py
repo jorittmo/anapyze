@@ -5,8 +5,8 @@ import os
 from os.path import join, exists
 import zipfile
 
-dir_db = '/home/jsilva/Data/IBIS_DATA/SUJETOS'
-dir_ordered = '/home/jsilva/Data/IBIS_DATA/Reorder_All'
+dir_db = 'D:/IBIS_DATA/SUJETOS'
+dir_ordered = 'D:/IBIS_DATA/Prueba'
 
 list_dirs = os.listdir(dir_db)
 
