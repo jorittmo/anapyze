@@ -172,6 +172,8 @@ def resample_image_by_matrix_size(input_filepath, output_filepath, target_shape,
     # Load NIfTI or Analyze image
     img = nib.load(input_filepath)
     img_data = img.get_fdata()
+    if len(img_data.shape)==3:
+        target_shape = target_shape[0:3]
 
     # Calculate zoom factors for each dimension
     zoom_factors = np.array(target_shape) / np.array(img_data.shape)

@@ -3,9 +3,11 @@ import shutil
 import numpy as np
 import nibabel as nib
 from os.path import join, exists, dirname
+import xmltodict
+import re
+
 
 class SPM(object):
-
     """
     This class will create .m scripts and parse them to matlab to run SPM.
     I have modified this class to make use of matlab instead os SPM standalone. This would allow to more easily update to new SPM/CAT12 versions.
@@ -26,11 +28,9 @@ class SPM(object):
 
         self.spm_run = '%s/run_spm12.sh %s batch' % (self.spm_path, self.mcr_path)
 
-
     def run_mfile(self, mfile):
 
         os.system('%s %s' % (self.spm_run, mfile))
-
 
     def coregister(self, reference_image, source_image):
 
@@ -63,7 +63,6 @@ class SPM(object):
         output = os.path.join(components[0], "r" + components[1])
 
         return output
-
 
     def normalize_pet(self, image_to_norm, template_image, images_to_write=False,
                       bb=None, write_vox_size='[1 1 1]', wrapping=True, interpolation=4):
@@ -124,7 +123,6 @@ class SPM(object):
 
         return output, transformation_matrix
 
-
     def normalize_mri(self, image_to_norm, template_image, images_to_write=False,
                       bb=None, write_vox_size='[1 1 1]', interpolation=4):
 
@@ -168,10 +166,9 @@ class SPM(object):
 
         self.run_mfile(mfile_name)
 
-        deformed_images =  []
+        deformed_images = []
 
         for j in images_to_write:
-
             components = os.path.split(j)
             output = os.path.join(components[0], 'w' + components[1])
             deformed_images.append(output)
@@ -181,7 +178,6 @@ class SPM(object):
         transformation_matrix = os.path.join(components_tm[0], matrix_name)
 
         return deformed_images, transformation_matrix
-
 
     def new_deformations(self, def_matrix, images_to_deform, interpolation, prefix='w'):
 
@@ -215,16 +211,14 @@ class SPM(object):
 
         self.run_mfile(mfile_name)
 
-        deformed_images =  []
+        deformed_images = []
 
         for j in images_to_deform:
-
             components = os.path.split(j)
             output = os.path.join(components[0], 'w' + components[1])
             deformed_images.append(output)
 
         return deformed_images
-
 
     def old_deformations(self, def_matrix, base_image, images_to_deform, interpolation):
 
@@ -260,16 +254,14 @@ class SPM(object):
 
         self.run_mfile(mfile_name)
 
-        deformed_images =  []
+        deformed_images = []
 
         for j in images_to_deform:
-
             components = os.path.split(j)
             output = os.path.join(components[0], 'w' + components[1])
             deformed_images.append(output)
 
         return deformed_images
-
 
     def apply_normalization_to_atlas(self, def_matrix, norm_mri, fs_atlas):
 
@@ -300,21 +292,18 @@ class SPM(object):
 
         return output
 
-
     def normalize_multiple_pets(self, dir_proc, images_to_norm, template_image, cutoff=15, nits=16, reg=1,
-                                             preserve=0, affine_regularization_type='mni', source_image_smoothing=8,
-                                             template_image_smoothing=3, bb=None,
-                                             write_vox_size='[1 1 1]', wrapping=True, interpolation=4, prefix='w'):
+                                preserve=0, affine_regularization_type='mni', source_image_smoothing=8,
+                                template_image_smoothing=3, bb=None,
+                                write_vox_size='[1 1 1]', wrapping=True, interpolation=4, prefix='w'):
 
-        
         if bb is None:
             bb = [-84, -102, -84, 84, 102, 84]
 
         design_type = "matlabbatch{1}.spm.tools.oldnorm.estwrite."
 
-        mfile_name = join(dir_proc,'normalize.m')
+        mfile_name = join(dir_proc, 'normalize.m')
         new_spm = open(mfile_name, "w")
-
 
         for i in range(len(images_to_norm)):
             new_spm.write(
@@ -343,18 +332,16 @@ class SPM(object):
             new_spm.write(design_type + "roptions.wrap = [0 0 0];" + "\n")
 
         new_spm.write(design_type + "roptions.prefix ='" + prefix + "';" + "\n")
-        
 
         new_spm.close()
 
         self.run_mfile(mfile_name)
 
-
     def smooth_multiple_imgs(self, dir_proc, images_to_smooth, smoothing):
 
         source_img_path, source_img_name = os.path.split(images_to_smooth[0])
         # Set the output file name
-        mfile_name = join(dir_proc,'smooth.m')
+        mfile_name = join(dir_proc, 'smooth.m')
 
         design_type = "matlabbatch{1}.spm.spatial.smooth."
         smoothing_array = "[" + str(smoothing[0]) + " " + str(smoothing[1]) + " " + str(smoothing[2]) + "]"
@@ -376,10 +363,9 @@ class SPM(object):
 
         self.run_mfile(mfile_name)
 
-
     def run_2sample_ttest(self, save_dir, group1, group2, group1_ages, group2_ages, group1_tiv=False, group2_tiv=False,
-                                 mask=False, dependence=0, variance=1, gmscaling=0, ancova=0, global_norm=1,
-                                 contrast_name='contrast', contrast='[1 -1 0 0]'):
+                          mask=False, dependence=0, variance=1, gmscaling=0, ancova=0, global_norm=1,
+                          contrast_name='contrast', contrast='[1 -1 0 0]'):
 
         if exists(save_dir):
             shutil.rmtree(save_dir)
@@ -391,7 +377,7 @@ class SPM(object):
         mfile_model = join(save_dir, 'model.m')
 
         self.create_mfile_model(mfile_model, save_dir, group1, group2, group1_ages, group2_ages, group1_tiv, group2_tiv,
-                                 mask, dependence, variance, gmscaling, ancova, global_norm)
+                                mask, dependence, variance, gmscaling, ancova, global_norm)
 
         self.run_mfile(mfile_model)
 
@@ -421,10 +407,10 @@ class SPM(object):
 
         print('Calculating thresholds for Cohens d (FDR corrected ....')
         self.get_tvalue_thresholds_FDR(out_t_values, len(group1), len(group2))
- 
+
     def create_mfile_model(self, mfile_name, save_dir, group1, group2, group1_ages, group2_ages, group1_tiv=False,
-                                          group2_tiv=False, mask=False, dependence=0, variance=1, gmscaling=0, ancova=0,
-                                          global_norm=1):
+                           group2_tiv=False, mask=False, dependence=0, variance=1, gmscaling=0, ancova=0,
+                           global_norm=1):
 
         design_type = "matlabbatch{1}.spm.stats.factorial_design."
 
@@ -520,8 +506,8 @@ class SPM(object):
         new_spm.close()
 
     def cat12seg_imgs(self, images_to_seg, template_tpm, template_volumes, number_of_cores=0,
-                      output_vox_size=1.5, bounding_box = 'cat12', surface_processing = 0,
-                      atlas_hammers = 0, atlas_aal = 0, atlas_suit = 0, atlas_schaefer100=0,
+                      output_vox_size=1.5, bounding_box='cat12', surface_processing=0,
+                      atlas_hammers=0, atlas_aal=0, atlas_suit=0, atlas_schaefer100=0,
                       atlas_custom=False, run=False):
 
         """
@@ -557,7 +543,7 @@ class SPM(object):
 
         design_type = "matlabbatch{1}.spm.tools.cat.estwrite.extopts.segmentation."
 
-        new_spm.write(design_type + "restypes.optimal = " +"[1 0.3]" + ";\n")
+        new_spm.write(design_type + "restypes.optimal = " + "[1 0.3]" + ";\n")
         new_spm.write(design_type + "setCOM = " + "1" + ";\n")
         new_spm.write(design_type + "APP = " + "1070" + ";\n")
         new_spm.write(design_type + "affmod = " + "0" + ";\n")
@@ -578,9 +564,9 @@ class SPM(object):
         new_spm.write(design_type + "regmethod.shooting.regstr = " + "0.5" + ";\n")
         new_spm.write(design_type + "vox = " + str(output_vox_size) + ";\n")
 
-        if bounding_box=='cat12':
+        if bounding_box == 'cat12':
             new_spm.write(design_type + "bb = " + "12" + ";\n")
-        elif bounding_box=='spm':
+        elif bounding_box == 'spm':
             new_spm.write(design_type + "bb = " + "16" + ";\n")
         else:
             raise ValueError("Bounding Box must be set to spm or cat12")
@@ -632,7 +618,7 @@ class SPM(object):
         if not atlas_custom:
             new_spm.write(design_type + "ownatlas = " + "{''}" + ";\n")
         else:
-            new_spm.write(design_type + "ownatlas = " + "{'"+ atlas_custom +"'}" + ";\n")
+            new_spm.write(design_type + "ownatlas = " + "{'" + atlas_custom + "'}" + ";\n")
 
         design_type = "matlabbatch{1}.spm.tools.cat.estwrite.output."
 
@@ -699,8 +685,7 @@ class SPM(object):
 
         return mfile_name
 
-
-    def run_cat12_new_model(self, save_dir, group1, group1_ages, group1_tivs, group2, group2_ages, group2_tivs,mask):
+    def run_cat12_new_model(self, save_dir, group1, group1_ages, group1_tivs, group2, group2_ages, group2_tivs, mask):
 
         if exists(save_dir):
             shutil.rmtree(save_dir)
@@ -771,14 +756,12 @@ class SPM(object):
             design_type + "check_SPM_zscore.do_check_zscore.adjust_data = 1;\n" +
             design_type + "check_SPM.check_SPM_ortho = 1;\n")
 
-
-        spm_mat = join(save_dir,'SPM.mat')
+        spm_mat = join(save_dir, 'SPM.mat')
         design_type = "matlabbatch{2}.spm.stats.fmri_est."
 
         new_spm.write(design_type + "spmmat = {'" + spm_mat + "'};\n")
         new_spm.write(design_type + "write_residuals = 0;")
         new_spm.write(design_type + "method.Classical = 1;")
-
 
         design_type = "matlabbatch{3}.spm.stats.con."
         contrast_name = 'Atrophy'
@@ -837,5 +820,38 @@ class SPM(object):
         new_file.write(str(cohens_thres))
         new_file.close()
 
-        
-        
+    @staticmethod
+    def get_tiv_from_xml_report(cat_xml_filepath):
+        """parse the information from a list-like object of "cat_*.xml" filepaths to
+        a list of dictionaries for more easy data handling"""
+
+        with open(cat_xml_filepath) as file:
+            cat_xml_dict = xmltodict.parse(file.read())
+
+            try:
+                vol_tiv = cat_xml_dict['S']['subjectmeasures']['vol_TIV']
+                return vol_tiv
+
+            except KeyError:
+                raise KeyError('Could not extract TIV')
+
+    @staticmethod
+    def get_weighted_average_iqrs_from_xml_report(cat_xml_filepath):
+        """Extract Weighted Average IQRS from dictionaries produced by _parse_xml_files_to_dict"""
+
+        with open(cat_xml_filepath) as file:
+            cat_xml_dict = xmltodict.parse(file.read())
+
+        pattern = '(Image Quality Rating \(IQR\):) (\d\d.\d\d)% \(([A-Z](-|\+)?)\)'
+
+        try:
+            catlog = cat_xml_dict['S']['catlog']['item']
+            for e in catlog:
+                if e.startswith('Image Quality Rating (IQR)'):
+                    match = re.search(pattern, e)
+                    weighted_average_iqr = match.group(2)
+                    weighted_average_iqr = float(weighted_average_iqr)
+                    return weighted_average_iqr
+
+        except:
+            raise KeyError('Could not extract IQRS')
