@@ -295,10 +295,10 @@ class SPM(object):
     def normalize_multiple_pets(self, dir_proc, images_to_norm, template_image, cutoff=15, nits=16, reg=1,
                                 preserve=0, affine_regularization_type='mni', source_image_smoothing=8,
                                 template_image_smoothing=3, bb=None,
-                                write_vox_size='[1 1 1]', wrapping=True, interpolation=4, prefix='w'):
+                                write_vox_size='[1.5 1.5 1.5]', wrapping=True, interpolation=4, prefix='w', run=True):
 
         if bb is None:
-            bb = [-84, -102, -84, 84, 102, 84]
+            bb = [-84, -120, -72, 84, 84, 96]
 
         design_type = "matlabbatch{1}.spm.tools.oldnorm.estwrite."
 
@@ -333,9 +333,15 @@ class SPM(object):
 
         new_spm.write(design_type + "roptions.prefix ='" + prefix + "';" + "\n")
 
+        new_spm.write("spm('defaults','fmri');" + "\n")
+        new_spm.write("spm_jobman('initcfg');" + "\n")
+        new_spm.write("spm_jobman('run',matlabbatch);" + "\n")
+
         new_spm.close()
 
-        self.run_mfile(mfile_name)
+        if run:
+
+            self.run_mfile(mfile_name)
 
     def smooth_multiple_imgs(self, dir_proc, images_to_smooth, smoothing):
 

@@ -271,7 +271,24 @@ def remove_nan_negs(input_filepath, output_filepath):
     # Save the cleaned image to the specified output filepath
     nib.save(cleaned_img, output_filepath)
 
+def reorient_and_clean(img_path, out_path):
+    img = nib.load(img_path)
 
+    # Reorient to closest canonical orientation
+    img_canonical = nib.as_closest_canonical(img)
+
+    # Get image data as numpy array
+    data = img_canonical.get_fdata()
+
+    # Set NaN values to 0
+    data[np.isnan(data)] = 0
+
+    # Set negative values to 0
+    data[data < 0] = 0
+
+    # Create a new NIfTI image with the modified data and save it
+    new_img = nib.Nifti1Image(data, img_canonical.affine, img_canonical.header)
+    nib.save(new_img, out_path)
 
 
 
