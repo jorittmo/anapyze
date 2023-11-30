@@ -24,12 +24,12 @@ for i in list_dirs:
 
         pet_dir = join(dir_subj, 'fdg')
 
-        #if not exists(pet_dir):
-        #    os.makedirs(pet_dir)
+        if not exists(pet_dir):
+            os.makedirs(pet_dir)
 
-        if exists(pet_dir):
-            shutil.rmtree(pet_dir)
-        os.makedirs(pet_dir)
+        #if exists(pet_dir):
+        #    shutil.rmtree(pet_dir)
+        #os.makedirs(pet_dir)
 
         pet_in = join(pet_dir,'pet.img')
         os.system('niitoanalyze %s %s' % (pet_image,pet_in))
