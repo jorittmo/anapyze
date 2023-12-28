@@ -15,7 +15,7 @@ class SPM(object):
     However, this requires matlab to be in your $PATH.
     """
 
-    def __init__(self, spm_path='/home/jsilva/software/cat12', mcr_path='/home/jsilva/software/Matlab_MCR/v93'):
+    def __init__(self, spm_path='/home/jsilva/software/cat12_standalone', mcr_path='/home/jsilva/software/MATLAB_MCR/v93'):
 
         self.spm_path = spm_path
         self.mcr_path = mcr_path
