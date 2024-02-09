@@ -1,10 +1,10 @@
 import os
 import subprocess
+
 import nibabel as nib
 import numpy as np
-
-
 from scipy.ndimage import zoom
+
 
 # This is an effort to convert all the fruitcake library to python
 
@@ -33,13 +33,13 @@ def convert_format_nii_hdr(img_name, compress_out=True):
         else:
             out_name = img[-4:] + '.nii'
 
-        nib.save(out_img,out_name)
+        nib.save(out_img, out_name)
         print(f"File {img_name} was converted to Nifti format and saved as {out_name}")
 
         return out_name
 
     elif img[-4:] == ".nii" or img[-7:] == '.nii.gz':
-    
+
         analyze_img = nib.analyze.AnalyzeImage(data, img.affine, img.header)
 
         if img[-4:] == ".nii":
@@ -51,10 +51,11 @@ def convert_format_nii_hdr(img_name, compress_out=True):
         print(f"File {img_name} was converted to Analyze format and saved as {out_name}")
 
         return out_name
-    
+
     else:
 
         raise TypeError("Wrong format")
+
 
 def convert_dicom_to_nifti_dcm2niix(input_folder, output_folder, output_filename):
     # Create the output folder if it doesn't exist
@@ -63,6 +64,7 @@ def convert_dicom_to_nifti_dcm2niix(input_folder, output_folder, output_filename
     # Run dcm2niix command to convert DICOM to NIfTI
     command = f"dcm2niix -o {output_folder} -f {output_filename} {input_folder}"
     subprocess.run(command, shell=True)
+
 
 def add_poisson_noise(input_filepath, output_filepath, intensity_scaling_factor=1.0):
     # Load NIfTI or Analyze image
@@ -78,13 +80,14 @@ def add_poisson_noise(input_filepath, output_filepath, intensity_scaling_factor=
     # Create a new NIfTI or Analyze image with the noisy data
     if isinstance(img, nib.nifti1.Nifti1Image):
         noisy_img = nib.Nifti1Image(noisy_img_data, img.affine, img.header)
-    
+
     elif isinstance(img, nib.analyze.AnalyzeImage):
-        
+
         noisy_img = nib.analyze.AnalyzeImage(noisy_img_data, img.affine, img.header)
 
     # Save the noisy image to the specified output filepath
     nib.save(noisy_img, output_filepath)
+
 
 def apply_constant_to_img(image, c, operation, output=False):
     """This function applies a constant to an image using a specified operation, and saves the result in a new image.
@@ -110,21 +113,21 @@ def apply_constant_to_img(image, c, operation, output=False):
 
     if operation == 'mult':
 
-        data = data*c
+        data = data * c
 
     elif operation == 'div':
 
-        data = data/c
+        data = data / c
 
     elif operation == 'sum':
 
-        data = data+c
+        data = data + c
 
     new_img = nib.AnalyzeImage(data, img_.affine, img_.header)
     nib.save(new_img, output_file)
 
-def change_image_dtype(input_filepath, output_filepath, new_dtype=np.float32):
 
+def change_image_dtype(input_filepath, output_filepath, new_dtype=np.float32):
     """
     Options for new_dtype
     np.uint8: 8-bit unsigned integer
@@ -156,8 +159,8 @@ def change_image_dtype(input_filepath, output_filepath, new_dtype=np.float32):
     # Save the image with the changed data type to the specified output filepath
     nib.save(new_img, output_filepath)
 
+
 def resample_image_by_matrix_size(input_filepath, output_filepath, target_shape, interpolation='linear'):
-    
     """
     # Example usage
     input_image_file = '/path/to/input/image/file.nii.gz'
@@ -168,11 +171,11 @@ def resample_image_by_matrix_size(input_filepath, output_filepath, target_shape,
     
     Interpolation options: nearest, linear, cubic, quadratic
     """
-    
+
     # Load NIfTI or Analyze image
     img = nib.load(input_filepath)
     img_data = img.get_fdata()
-    if len(img_data.shape)==3:
+    if len(img_data.shape) == 3:
         target_shape = target_shape[0:3]
 
     # Calculate zoom factors for each dimension
@@ -207,6 +210,7 @@ def resample_image_by_matrix_size(input_filepath, output_filepath, target_shape,
     # Save the resampled image to the specified output filepath
     nib.save(resampled_img, output_filepath)
 
+
 def resample_image_by_voxel_sizes(input_filepath, output_filepath, target_voxel_sizes, interpolation='linear'):
     """
     # Example usage
@@ -217,7 +221,7 @@ def resample_image_by_voxel_sizes(input_filepath, output_filepath, target_voxel_
 
     resample_image_with_voxel_sizes(input_image_file, output_resampled_image_file, target_voxel_sizes, interpolation_method)
     """
-    
+
     # Load NIfTI or Analyze image
     img = nib.load(input_filepath)
     img_data = img.get_fdata()
@@ -253,6 +257,7 @@ def resample_image_by_voxel_sizes(input_filepath, output_filepath, target_voxel_
     # Save the resampled image to the specified output filepath
     nib.save(resampled_img, output_filepath)
 
+
 def remove_nan_negs(input_filepath, output_filepath):
     # Load NIfTI or Analyze image
     img = nib.load(input_filepath)
@@ -270,6 +275,7 @@ def remove_nan_negs(input_filepath, output_filepath):
 
     # Save the cleaned image to the specified output filepath
     nib.save(cleaned_img, output_filepath)
+
 
 def reorient_and_clean(img_path, out_path):
     img = nib.load(img_path)
@@ -289,9 +295,3 @@ def reorient_and_clean(img_path, out_path):
     # Create a new NIfTI image with the modified data and save it
     new_img = nib.Nifti1Image(data, img_canonical.affine, img_canonical.header)
     nib.save(new_img, out_path)
-
-
-
-
-
-

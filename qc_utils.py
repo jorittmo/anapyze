@@ -1,4 +1,5 @@
 from os.path import exists
+
 import nibabel as nib
 import numpy as np
 

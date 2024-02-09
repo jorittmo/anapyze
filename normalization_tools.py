@@ -1,10 +1,12 @@
 import os
-import numpy as np
-import nibabel as nib
-from scipy.fftpack import fftn, fftshift
-from scipy import signal
+
 import matplotlib.pyplot as plt
+import nibabel as nib
+import numpy as np
 import pwlf
+from scipy import signal
+from scipy.fftpack import fftn, fftshift
+
 import spm
 
 
@@ -346,7 +348,6 @@ def histogram_matching(reference_nii, input_nii, output_nii):
 
 
 def optimize_smoothing_group_ncc(spm_path, img_group_paths, template_path, sigma_range):
-
     """Optimizes the smoothing of a group of images using a Gaussian filter and the spm library.
 
     :param spm_path: the path to the spm executable
@@ -411,7 +412,6 @@ def optimize_smoothing_group_ncc(spm_path, img_group_paths, template_path, sigma
 
 
 def estimate_fwhm_mizutani(nifti, bin_size=5, n_segs=2, orientation='axial', plot=False):
-
     """
     This function estimates image xy resolution based in a previous method implemented by MIZUTANI ET AL.
     for microscopy imaging:
@@ -437,8 +437,6 @@ def estimate_fwhm_mizutani(nifti, bin_size=5, n_segs=2, orientation='axial', plo
 
     :return: The average FWHM across all slices in the image.
     """
-
-
 
     img = nib.load(nifti)
     image_xy_size = np.abs(img.affine[0, 0])

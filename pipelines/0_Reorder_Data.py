@@ -1,9 +1,9 @@
-#For using this file, you should clone the SUJETOS directory in the NEUROIMAGING DATABASE SYSTEM.
-#After that, you can reorder to filter the modalities you need for you project.
+# For using this file, you should clone the SUJETOS directory in the NEUROIMAGING DATABASE SYSTEM.
+# After that, you can reorder to filter the modalities you need for you project.
 
 import os
-from os.path import join, exists
 import zipfile
+from os.path import join, exists
 
 dir_db = 'D:/IBIS_DATA/SUJETOS'
 dir_ordered = 'D:/IBIS_DATA/Prueba'
@@ -52,4 +52,4 @@ for i in list_dirs:
                     with zipfile.ZipFile(i_file_path, 'r') as zip_ref:
                         zip_ref.extractall(dest_dir)
 
-#%%
+# %%

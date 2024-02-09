@@ -1,10 +1,11 @@
 import os
-import shutil
-import numpy as np
-import nibabel as nib
-from os.path import join, exists, dirname
-import xmltodict
 import re
+import shutil
+from os.path import join, exists, dirname
+
+import nibabel as nib
+import numpy as np
+import xmltodict
 
 
 class SPM(object):
@@ -15,7 +16,8 @@ class SPM(object):
     However, this requires matlab to be in your $PATH.
     """
 
-    def __init__(self, spm_path='/home/jsilva/software/cat12_standalone', mcr_path='/home/jsilva/software/MATLAB_MCR/v93'):
+    def __init__(self, spm_path='/home/jsilva/software/cat12_standalone',
+                 mcr_path='/home/jsilva/software/MATLAB_MCR/v93'):
 
         self.spm_path = spm_path
         self.mcr_path = mcr_path
@@ -340,7 +342,6 @@ class SPM(object):
         new_spm.close()
 
         if run:
-
             self.run_mfile(mfile_name)
 
     def smooth_multiple_imgs(self, dir_proc, images_to_smooth, smoothing):

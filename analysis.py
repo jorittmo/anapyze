@@ -1,10 +1,8 @@
-import os
-import numpy as np
-import nibabel as nib
 from os.path import exists
+
+import nibabel as nib
+import numpy as np
 import pandas as pd
-from scipy import signal
-from qc_utils import qc_utils
 import pingouin as pg
 
 
@@ -55,7 +53,6 @@ def create_mean_std_imgs(images, output_mean, output_std):
 
 
 def transform_img_to_voxel_zscores(img_, mean, std, out):
-
     if exists(img_) and exists(mean) and exists(std):
 
         img = nib.load(img_)
@@ -138,7 +135,7 @@ def create_atlas_csv_from_normals_imgs(normals, output_csv, atlas_csv, atlas_hdr
     :rtype: None
     """
 
-    atlas_df = pd.read_csv(atlas_csv,sep=';')
+    atlas_df = pd.read_csv(atlas_csv, sep=';')
     atlas_img = nib.load(atlas_hdr)
     atlas_data = atlas_img.get_fdata()[:, :, :, 0]
 
@@ -184,7 +181,7 @@ def calculate_z_scores_array(image, atlas):
 
     rois = np.unique(atlas_data)
     for i in rois:
-        indx = np.where(atlas_data==i)
+        indx = np.where(atlas_data == i)
         mean = np.mean(img_data[indx])
         values.append(mean)
 
@@ -322,7 +319,6 @@ def voxel_wise_pearson_images_scale(images, scale, mask, output_rs, output_ps, c
 
 
 def image_to_image_corr_atlas_based_spearsman(image_1, image_2, atlas):
-
     """Calculates the spearman correlation coefficient and p-value between two images using
     the atlas ROI-values extracted for each region of interest (ROI) defined by an atlas.
 
@@ -406,8 +402,3 @@ def ncc(img1_path, img2_path):
 
     # Calculate and return the NCC
     return numerator / denominator
-
-
-
-
-
