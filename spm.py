@@ -692,6 +692,92 @@ class SPM(object):
 
         return mfile_name
 
+    def cat12seg_longit(self, images_to_seg, template_tpm, template_volumes, longmodel = 2, number_of_cores = 2,
+                        output_vox_size = 1.5, bounding_box = 'cat12',surface_processing=0, run=False):
+
+        """
+        This function creates a mfile to later run with MATLAB.
+        You can run it within spm.py stating run=True but multithreading is not available.
+        mfile: Destination of the created mfile
+        images_to_seg = A list of all the images of all the subjects you want to segment (Nifti (.nii/.nii.gz) of Analyze (.img)).
+        images_to_seg should be provided as [[S1_image1,S1_image2,...],[S2_image1,S2_image2,....]
+        template_tpm = Template image to normalize the images to (something like ... PATH_TO/spm12/tpm/TPM.nii)
+        template_volumes = Templete volumes image from CAT12 (something like ... PATH_TO/spm12/toolbox/cat12/template_volumes/Template_0_IXI555_MNI152_GS.nii)
+        rest of the parameters = Consult CAT12 segment
+        """
+
+        design_type = "matlabbatch{1}.spm.tools.cat.long."
+
+        mfile_name = 'cat12seg_longit.m'
+        new_spm = open(mfile_name, 'w')
+
+        new_spm.write(design_type + "datalong.subjects = {\n")
+        for i in range(len(images_to_seg)):
+            new_spm.write("{\n")
+            for j in range(len(images_to_seg[i])):
+                new_spm.write("'" + images_to_seg[i][j] + "'\n")
+            new_spm.write("}" + "\n")
+        new_spm.write("};" + "\n")
+
+        new_spm.write(design_type + "longmodel = " + str(longmodel) + ";\n")
+        new_spm.write(design_type + "enablepriors = 1;" + "\n")
+        new_spm.write(design_type + "prepavg = 2;" + "\n")
+        new_spm.write(design_type + "bstr = 0;" + "\n")
+        new_spm.write(design_type + "avgLASWMHC = 0;" + "\n")
+        new_spm.write(design_type + "nproc = " + str(number_of_cores) + ";\n")
+        new_spm.write(design_type + "opts.tpm = {'" + template_tpm + "'};\n")
+        new_spm.write(design_type + "opts.affreg = 'mni';" + "\n")
+        new_spm.write(design_type + "opts.biasacc = 0.5;" + "\n")
+
+        design_type = "matlabbatch{1}.spm.tools.cat.long.extopts."
+
+        new_spm.write(design_type + "restypes.optimal = [1 0.3];" + "\n")
+        new_spm.write(design_type + "setCOM = 1;" + "\n")
+        new_spm.write(design_type + "APP = 1070;" + "\n")
+        new_spm.write(design_type + "affmod = 0;" + "\n")
+        new_spm.write(design_type + "LASstr = 0.5;" + "\n")
+        new_spm.write(design_type + "LASmyostr = 0;" + "\n")
+        new_spm.write(design_type + "gcutstr = 2;" + "\n")
+        new_spm.write(design_type + "WMHC = 2;" + "\n")
+
+        new_spm.write(design_type + "registration.shooting.shootingtpm = {'" + template_volumes + "'};\n")
+        new_spm.write(design_type + "registration.shooting.regstr = 0.5;" + "\n")
+
+        new_spm.write(design_type + "vox = " + str(output_vox_size) + ";\n")
+
+        if bounding_box == 'cat12':
+            new_spm.write(design_type + "bb = " + "12" + ";\n")
+        elif bounding_box == 'spm':
+            new_spm.write(design_type + "bb = " + "16" + ";\n")
+        else:
+            raise ValueError("Bounding Box must be set to spm or cat12")
+
+        new_spm.write(design_type + "SRP = 22;" + "\n")
+        new_spm.write(design_type + "ignoreErrors = 1;" + "\n")
+
+        design_type = "matlabbatch{1}.spm.tools.cat.long."
+
+        new_spm.write(design_type + "output.BIDS.BIDSno = 1;" + "\n")
+        new_spm.write(design_type + "output.surface = " + str(surface_processing) + ";\n")
+        new_spm.write(design_type + "ROImenu.noROI = struct([]);" + "\n")
+        new_spm.write(design_type + "longTPM = 1;" + "\n")
+        new_spm.write(design_type + "modulate = 1;" + "\n")
+        new_spm.write(design_type + "dartel = 0;" + "\n")
+        new_spm.write(design_type + "printlong = 2;" + "\n")
+        new_spm.write(design_type + "delete_temp = 1;" + "\n")
+
+        new_spm.write("\n")
+        new_spm.write("spm('defaults','fmri');" + "\n")
+        new_spm.write("spm_jobman('initcfg');" + "\n")
+        new_spm.write("spm_jobman('run',matlabbatch);" + "\n")
+
+        new_spm.close()
+
+        if run:
+            self.run_mfile(mfile_name)
+
+        return mfile_name
+
     def run_cat12_new_model(self, save_dir, group1, group1_ages, group1_tivs, group2, group2_ages, group2_tivs, mask):
 
         if exists(save_dir):
