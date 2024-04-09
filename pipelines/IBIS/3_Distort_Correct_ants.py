@@ -2,10 +2,9 @@ import warnings
 warnings.filterwarnings("ignore")
 
 import os,sys
-import shutil
-import gzip
+
 import nibabel as nib
-from os.path import join, exists, isdir, basename
+from os.path import join, exists
 import numpy as np
 import time
 from datetime import datetime
