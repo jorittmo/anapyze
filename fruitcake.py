@@ -40,7 +40,7 @@ def convert_format_nii_hdr(img_name, compress_out=True):
 
     elif img[-4:] == ".nii" or img[-7:] == '.nii.gz':
 
-        analyze_img = nib.analyze.AnalyzeImage(data, img.affine, img.header)
+        analyze_img = nib.Nifti1Image(data, img.affine, img.header)
 
         if img[-4:] == ".nii":
             out_name = img[-4:] + '.hdr'

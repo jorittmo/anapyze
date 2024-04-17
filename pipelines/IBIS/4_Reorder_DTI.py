@@ -62,7 +62,9 @@ for i in list_dirs:
             t1_inverted = join(dir_t1, 't1_inverted.nii.gz')
             out_ants = join(dir_pasternak, 't1_%s' % r_image)
 
-            if exists(result):
+            final = join(dir_pasternak, 'wt1_' + r_image[0:-3])
+
+            if exists(result) and not exists(final):
 
                 command = 'antsApplyTransforms -d 3 -i %s -r %s -o %s -t [%s,1]' % (result, t1_inverted, out_ants, warp)
                 os.system(command)
@@ -73,8 +75,6 @@ for i in list_dirs:
 
                 os.remove(out_ants)
 
-            else:
-                print('Some file missing')
 
         img_to_deform = []
 
@@ -132,7 +132,9 @@ for i in list_dirs:
             t1_inverted = join(dir_t1, 't1_inverted.nii.gz')
             out_ants = join(dir_mauricio, 't1_%s' % r_image)
 
-            if exists(result):
+            final = join(dir_mauricio, 'wt1_' + r_image[0:-3])
+
+            if exists(result) and not exists(final):
 
                 command = 'antsApplyTransforms -d 3 -i %s -r %s -o %s -t [%s,1]' % (result, t1_inverted, out_ants, warp)
                 os.system(command)
@@ -142,9 +144,6 @@ for i in list_dirs:
                         shutil.copyfileobj(f_in, f_out)
 
                 os.remove(out_ants)
-
-            else:
-                print('Some file missing')
 
         img_to_deform = []
 
@@ -189,4 +188,5 @@ for i in list_dirs:
             os.system('%s batch %s' % (cat12_command, mfile_name))
 
         for img_ in img_to_deform:
-            os.remove(img_)
+            if exists(img_):
+                os.remove(img_)
