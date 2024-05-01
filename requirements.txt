@@ -1,11 +1,11 @@
-nibabel
-nilearn
 numpy
 pandas
+nibabel
+nilearn
 scipy
 pingouin
-docker
 dipy
 scikit-learn
 matplotlib
 pwlf
+xmltodict

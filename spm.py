@@ -1,10 +1,7 @@
 import os
 import re
 import shutil
-from os.path import join, exists, dirname
-
-import nibabel as nib
-import numpy as np
+from os.path import join, exists
 import xmltodict
 
 
@@ -512,6 +509,34 @@ class SPM(object):
 
         new_spm.close()
 
+class CAT12(object):
+    """
+    This class will create .m scripts and parse them to matlab to run SPM.
+    I have modified this class to make use of matlab instead os SPM standalone.
+    This would allow to more easily update to new SPM versions.
+    Also should be the class more directly usable in other OS such as MAC_OS or Linux
+    However, this requires matlab to be in your $PATH.
+    """
+
+    def __init__(self, spm_path='/home/jsilva/software/cat12_standalone',
+                 mcr_path='/home/jsilva/software/MATLAB_MCR/v93'):
+
+        self.spm_path = spm_path
+        self.mcr_path = mcr_path
+
+        if not exists(self.spm_path):
+            raise FileNotFoundError(f"{self.spm_path} is not found.")
+
+        if not exists(self.spm_path):
+            raise FileNotFoundError(f"{self.mcr_path} is not found.")
+
+        self.spm_run = '%s/run_spm12.sh %s batch' % (self.spm_path, self.mcr_path)
+
+    def run_mfile(self, mfile):
+
+        os.system('%s %s' % (self.spm_run, mfile))
+
+
     def cat12seg_imgs(self, images_to_seg, template_tpm, template_volumes, number_of_cores=0,
                       output_vox_size=1.5, bounding_box='cat12', surface_processing=0,
                       atlas_hammers=0, atlas_aal=0, atlas_suit=0, atlas_schaefer100=0,
@@ -778,7 +803,7 @@ class SPM(object):
 
         return mfile_name
 
-    def run_cat12_new_model(self, save_dir, group1, group1_ages, group1_tivs, group2, group2_ages, group2_tivs, mask):
+    def create_cat12_new_model(self, save_dir, group1, group1_ages, group1_tivs, group2, group2_ages, group2_tivs, mask):
 
         if exists(save_dir):
             shutil.rmtree(save_dir)
@@ -867,51 +892,6 @@ class SPM(object):
         new_spm.write(design_type + "delete = 0;\n")
 
         new_spm.close()
-
-        self.run_mfile(mfile_name)
-
-    @staticmethod
-    def spm_map_2_cohens_d(img, out, len_1, len_2):
-        """
-        Converts an image to cohens_d
-        Expected input is a spmT_0001.nii file
-        """
-        img = nib.load(img)
-        data = img.get_fdata()
-        d_coeff = np.sqrt(1 / len_1 + 1 / len_2)
-        data = data * d_coeff
-        d_img = nib.AnalyzeImage(data, img.affine, img.header)
-        nib.save(d_img, out)
-
-    @staticmethod
-    def get_tvalue_thresholds_FDR(img_, n1, n2):
-
-        from scipy.stats import t
-        # Load the NIFTI image
-        img = nib.load(img_)
-
-        # Get the data from the image
-        data = img.get_fdata()
-
-        # Flatten the data to get a 1D array of t-values
-        t_values = data.flatten()
-        t_values = abs(np.unique(t_values[t_values != 0]))
-        t_values = np.sort(t_values)
-
-        df = n1 + n2 - 2
-        p_values = t.sf(abs(t_values), df=df)
-        indx = np.where(p_values < 0.05)
-        thresholded = t_values[indx]
-        thres = np.percentile(thresholded, 5)
-
-        d_coeff = np.sqrt(1 / n1 + 1 / n2)
-        cohens_thres = thres * d_coeff
-
-        print(cohens_thres)
-        new_file_name = join(dirname(img_), 'cohensd_thres.txt')
-        new_file = open(new_file_name, "w")
-        new_file.write(str(cohens_thres))
-        new_file.close()
 
     @staticmethod
     def get_tiv_from_xml_report(cat_xml_filepath):

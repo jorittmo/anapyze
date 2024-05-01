@@ -168,3 +168,4 @@ resources/mask/gm_cat12_centered.nii
 
 .DS_Store
 pipelines/IBIS/normalize.m
+/.idea/
