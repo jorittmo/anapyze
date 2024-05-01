@@ -12,7 +12,7 @@ import time
 anapyze_dir = r'/Users/jsilva/repositories/anapyze'
 anapyze_rsc = join(anapyze_dir,'resources')
 sys.path.insert(0,anapyze_dir)
-from spm import SPM
+from spm import CAT12
 
 # CONFIG
 #---------------------------------------------------------------------------------------------------------------
@@ -68,5 +68,5 @@ for subj in list_subjects:
         else:
             images.append(subject)
 
-spm_proc = SPM(spm_path)
+spm_proc = CAT12(spm_path,mcr_path)
 cat_12_proc = spm_proc.cat12seg_longit(images, tpm, template_volumes, number_of_cores = 12, surface_processing=0, run=False)
