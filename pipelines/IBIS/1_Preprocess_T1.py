@@ -26,7 +26,7 @@ template_volumes = join(spm_path, r'toolbox\cat12\templates_MNI152NLin2009cAsym'
 
 
 sys.path.insert(0,anapyze_dir)
-from spm import SPM
+from spm import CAT12
 
 list_dirs = os.listdir(dir_patients)
 
@@ -69,5 +69,5 @@ for i in list_dirs:
                     else:
                         images.append(rm_in)
 
-spm_proc = SPM(spm_path)
+spm_proc = CAT12(spm_path)
 cat_12_proc = spm_proc.cat12seg_imgs(images, tpm, template_volumes, run=False)
