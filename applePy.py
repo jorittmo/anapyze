@@ -15,7 +15,7 @@ import spm
 
 class Format:
     """
-    Tools to convert and format data
+    Tools to convert data from and to different formats (Nifti, Analyze, DICOM)
     """
 
     @staticmethod
