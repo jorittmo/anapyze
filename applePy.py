@@ -20,14 +20,14 @@ class Format:
 
     @staticmethod
     def convert_format_nii_hdr(img_name, compress_out=True):
-
-        """This function converts an image file from nifti to analyze and viceversa.
+        """
+        This function converts an image file from Nifti to Analyze format and vice versa.
         Depending on your input, it will output the other format. It also works with .nii.gz
 
-        :param img_name: the name of the nii/nii.gz/hdr file to be converted
+        :param img_name: the name of the nii/nii.gz/hdr/img file to be converted
         :type img_name: str
-        :param compress_out: Will out nii.gz if the input is analyze
-        :type img_name: bool
+        :param compress_out: Will output nii.gz if the input is Analyze
+        :type compress_out: bool
         :return: the name of the result file that was created
         :rtype: str
         """
@@ -36,28 +36,26 @@ class Format:
         img = nib.load(img_name)
         data = img.get_fdata()
 
-        if img[-4:] == ".hdr" or img[-4:] == '.img':
-
+        # Determine the output filename based on the input file format
+        if img_name[-4:] == ".hdr" or img_name[-4:] == '.img':
+            # Convert from Analyze to NIFTI
             out_img = nib.Nifti1Image(data, img.affine, img.header)
-
             if compress_out:
-                out_name = img[-4:] + '.nii.gz'
+                out_name = img_name[:-4] + '.nii.gz'
             else:
-                out_name = img[-4:] + '.nii'
+                out_name = img_name[:-4] + '.nii'
 
             nib.save(out_img, out_name)
             print(f"File {img_name} was converted to Nifti format and saved as {out_name}")
-
             return out_name
 
-        elif img[-4:] == ".nii" or img[-7:] == '.nii.gz':
+        elif img_name[-4:] == ".nii" or img_name[-7:] == '.nii.gz':
+            # Convert from NIFTI to Analyze
+            file_basename = img_name[:-4] if img_name[-4:] == ".nii" else img_name[:-7]
+            out_name = file_basename + '.hdr'
 
+            # Create Analyze (SPM compatible) .hdr/.img instead (done via Nifti)
             analyze_img = nib.Nifti1Image(data, img.affine, img.header)
-
-            if img[-4:] == ".nii":
-                out_name = img[-4:] + '.hdr'
-            else:
-                out_name = img[-7:] + '.hdr'
 
             nib.save(analyze_img, out_name)
             print(f"File {img_name} was converted to Analyze format and saved as {out_name}")
@@ -65,8 +63,7 @@ class Format:
             return out_name
 
         else:
-
-            raise TypeError("Wrong format")
+            raise TypeError("Unsupported file format. Please provide a NIFTI (.nii, .nii.gz) or Analyze (.hdr, .img) file.")
 
     @staticmethod
     def convert_dicom_to_nifti_dcm2niix(input_folder, output_folder, output_filename):
