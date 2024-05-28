@@ -767,9 +767,9 @@ class SPM(object):
         new_spm.write(design_type + "delete_temp = 1;" + "\n")
 
         new_spm.write("\n")
-        new_spm.write("spm('defaults','fmri');" + "\n")
-        new_spm.write("spm_jobman('initcfg');" + "\n")
-        new_spm.write("spm_jobman('run',matlabbatch);" + "\n")
+        #new_spm.write("spm('defaults','fmri');" + "\n")
+        #new_spm.write("spm_jobman('initcfg');" + "\n")
+        #snew_spm.write("spm_jobman('run',matlabbatch);" + "\n")
 
         new_spm.close()
 
