@@ -2,18 +2,19 @@ import os
 import subprocess
 from os.path import dirname, exists, join
 from textwrap import dedent
+from typing import Any, Tuple
 
 import matplotlib.pyplot as plt
 import nibabel as nib
 import numpy as np
+import numpy.typing as npt
 import pandas as pd
 import pingouin as pg
 import pwlf
+from numpy import dtype, long, ndarray, signedinteger
 from scipy.fftpack import fftn, fftshift
 from scipy.ndimage import zoom
 from scipy.stats import pearsonr, spearmanr, t
-
-import spm
 
 
 class Format:
@@ -22,21 +23,19 @@ class Format:
     """
 
     @staticmethod
-    def nii_hdr_convert(img_name, compress_out=True):
+    def nii_hdr_convert(img_name: str, compress_out=True) -> str:
         """
-        This function converts an image file from Nifti to Analyze vice versa.
+        This function converts an image from Nifti to Analyze or vice versa.
         Depending on your input, it will output the other format.
-        It also works with .nii.gz
+        It works with .hdr/.nii/.nii.gz
 
         :param img_name: the name of the nii/nii.gz/hdr/img to be converted
-        :type img_name: str
         :param compress_out: Will output nii.gz if the input is Analyze
-        :type compress_out: bool
-        :return: the name of the result file that was created
-        :rtype: str
+        :return: the name of the result file that was created.
         """
 
         # Load the NIFTI image using nibabel
+        img: nib.Nifti1Image | nib.AnalyzeImage
         img, data = Utils.load_nifti(img_name)
 
         # Determine the output filename based on the input file format
@@ -49,8 +48,8 @@ class Format:
 
             Utils.save_nifti(img, data, out_name)
             print(
-                f"File {img_name} was converted to Nifti format and saved as {out_name}"
-            )
+                    f"File {img_name} was converted to Nifti format and saved as {out_name}"
+                    )
             return out_name
 
         elif img_name[-4:] == ".nii" or img_name[-7:] == ".nii.gz":
@@ -61,29 +60,28 @@ class Format:
             Utils.save_nifti(img, data, out_name)
 
             print(
-                f"File {img_name} was converted to Analyze format and saved as {out_name}"
-            )
+                    f"File {img_name} was converted to Analyze format and saved as {out_name}"
+                    )
 
             return out_name
 
         else:
             raise TypeError(
-                dedent(
-                    """Unsupported file format.
+                    dedent(
+                            """Unsupported file format.
                     Please provide a NIFTI (.nii, .nii.gz)
                     or Analyze (.hdr, .img) file."""
-                )
-            )
+                            )
+                    )
 
     @staticmethod
-    def dcm_nii_dcm2niix(input_folder, output_folder, output_filename):
+    def dcm_nii_dcm2niix(input_folder: str, output_folder: str, output_filename: str) -> None:
         """
-        Converts a dicom folder into a nifti using dcm2niix
+        Converts a dicom folder into a nifti using dcm2niix.
         dcm2niix should be installed and added to the PATH environment variable
         :param input_folder: Input DICOM folder
-        :param output_folder: Where the Nifti images will go
-        :param output_filename: Naming of the output imaegs
-        :return:
+        :param output_folder: Path Where the Nifti images will go
+        :param output_filename: Basename for the output Nifti's
         """
 
         # Create the output folder if it doesn't exist
@@ -100,21 +98,20 @@ class Analysis:
     """
 
     @staticmethod
-    def create_mean_std_imgs(images, output_mean, output_std):
+    def create_mean_std_imgs(images: list[str], output_mean: str, output_std: str) -> None:
         """This function creates the mean and standard deviation images for a list of images,
         and saves them in nifti files.
 
         :param images: a list of strings (nifti files paths)
-        :type images: list
         :param output_mean: the name of the nifti file that will contain the mean image
-        :type output_mean: str
         :param output_std: the name of the nifti file that will contain the standard deviation image
-        :type output_std: str
-        :return: None
-        :rtype: None
+
         """
 
         sample_nii = images[0]
+
+        sample_data: npt.NDArray
+        sample_img: nib.Nifti1Image | nib.AnalyzeImage
         sample_img, sample_data = Utils.load_nifti(sample_nii)
 
         mean_data = sample_data * 0
@@ -142,16 +139,17 @@ class Analysis:
         Utils.save_nifti(sample_img, std_data, output_std)
 
     @staticmethod
-    def transform_img_to_voxel_zscores(img_, mean, std, out):
+    def transform_img_to_voxel_zscores(img_: str, mean: str, std: str, out: str) -> None:
         """
-        Transforms an image to voxel-by-voxel z-scores using normative data
+        Transforms an image to voxel-by-voxel z-scores using normative data preprocessed
         :param img_: Input image
         :param mean: Mean image from a normative group
         :param std: Standard deviation image from a normative group
         :param out: Z-scores image (Nifti, Analyze)
-        :return:
         """
         if exists(img_) and exists(mean) and exists(std):
+
+            img: nib.Nifti1Image | nib.AnalyzeImage
             img, data = Utils.load_nifti(img_)
             mean_img, mean_data = Utils.load_nifti(mean)
             std_img, std_data = Utils.load_nifti(std)
@@ -163,23 +161,19 @@ class Analysis:
             raise FileNotFoundError("File not found at")
 
     @staticmethod
-    def transform_img_to_atlas_zscores(img_, out, atlas_csv, atlas_hdr):
+    def transform_img_to_atlas_zscores(img_: str, out: str, atlas_csv: str, atlas_hdr: str) -> None:
         """This function transforms an image to atlas z-scores, based on an atlas csv and hdr file,
         and saves the output image in a nifti file.
 
         :param img_: the name of the nifti file that contains the image to be transformed
-        :type img_: str
         :param out: the name of the nifti file that will contain the output image
-        :type out: str
         :param atlas_csv: CSV containing the atlas information (ROI_NUM, MEAN, STD)
-        :type atlas_csv: str
         :param atlas_hdr: the name of the hdr file that contains the atlas image
-        :type atlas_hdr: str
-        :return: None
-        :rtype: None
         """
 
         atlas_df = pd.read_csv(atlas_csv)
+
+        atlas_img: nib.Nifti1Image | nib.AnalyzeImage
         atlas_img, atlas_data = Utils.load_nifti(atlas_hdr)
 
         if exists(img_):
@@ -205,21 +199,15 @@ class Analysis:
             raise FileNotFoundError("File not found at: " + img_)
 
     @staticmethod
-    def create_atlas_csv_from_normals_imgs(normals, output_csv, atlas_csv, atlas_hdr):
+    def create_atlas_csv_from_normals_imgs(normals: list[str], output_csv: str, atlas_csv: str, atlas_hdr: str) -> None:
         """This function creates a csv file with the mean and
         standard deviation of the ROI values for a list of
         images, based on an atlas csv and hdr file.
 
         :param normals: a list of strings (nifti files paths)
-        :type normals: list
         :param output_csv: the name of the csv file that will contain the output data
-        :type output_csv: str
         :param atlas_csv:the CSV file that contains the atlas information (ROI_NUM, ROI_NAME)
-        :type atlas_csv: str
         :param atlas_hdr: the name of the hdr file that contains the atlas image
-        :type atlas_hdr: str
-        :return: None
-        :rtype: None
         """
 
         atlas_df = pd.read_csv(atlas_csv, sep=";")
@@ -249,14 +237,10 @@ class Analysis:
         print("Done!")
 
     @staticmethod
-    def calculate_z_scores_array(image, atlas):
+    def calculate_z_scores_array(image: str, atlas: str) -> list[float]:
         """Calculates the z-scores for each ROI in an atlas.
         :param image: the path to the input image
-        :type image: str
         :param atlas: the path to the atlas image
-        :type atlas: str
-        :return: None
-        :rtype: None
         """
 
         img, img_data = Utils.load_nifti(image)
@@ -273,25 +257,88 @@ class Analysis:
         return values
 
     @staticmethod
-    def voxel_wise_partial_pearson_images_scale(
-        images, scale, covariate, mask, output_rs
-    ):
-        """Calculates the partial pearson correlation coefficient between images and scalars
-        (i.e. a neurpsychological scale)
-        for each voxel in the mask image.
-        :param images: a list of paths for the  images
-        :type images: list
+    def voxel_wise_corr_images_vs_scale(
+            images: list, scale: list, mask: str, output_rs: str, output_ps: str, corr: str = "pearson"
+            ) -> None:
+        """Calculates the pearson correlation coefficient and p-value between images and scalars
+        (i.e. a neuropsychological scale) for each voxel in the mask image.
+        :param images: a list of paths for the images
         :param scale: a list of scale values
-        :type scale: list
-        :param covariate: a list of covariate values
-        :type covariate: list
         :param mask: the path to the mask image
-        :type mask: str
         :param output_rs: the path to the output file for the correlation coefficients
-        :type output_rs: str
+        :param output_ps: the path to the output file for the p-values
+        :param corr: the type of correlation coefficient to calculate (pearson, spearman)
         """
+
+        mask_data: npt.NDArray = Utils.load_nifti(mask, only_data=True)
+
+        sample_img: nib.Nifti1Image | nib.AnalyzeImage
+        sample_data: npt.NDArray
+        sample_img, sample_data = Utils.load_nifti(images[0])
+
+        corr_r = sample_data * 0
+        corr_p = sample_data * 0
+
+        data = sample_data[..., np.newaxis]
+
+        for image in images[1:]:
+            img_data: npt.NDArray
+            img_data = Utils.load_nifti(image, only_data=True)
+            img_data = img_data[..., np.newaxis]
+            data = np.append(data, img_data, axis=3)
+
+        print("Data shape: ", data.shape)
+        print("Mask shape: ", mask_data.shape)
+        print("Scale values: ", len(scale))
+
+        for i in range(sample_data.shape[0]):
+            for j in range(sample_data.shape[1]):
+                for k in range(sample_data.shape[2]):
+                    if mask_data[i, j, k] == 0:
+                        pass
+
+                    else:
+                        data_array = data[i, j, k, :]
+
+                        if corr == "pearson":
+                            r_, p_ = pearsonr(data_array, scale)
+
+                        elif corr == "spearman":
+                            r_, p_ = spearmanr(data_array, scale)
+
+                        else:
+                            raise ValueError(
+                                    "corr variable must be pearson or spearman"
+                                    )
+
+                        corr_r[i, j, k] = r_
+                        corr_p[i, j, k] = p_
+
+        Utils.save_nifti(sample_img, corr_r, output_rs)
+        Utils.save_nifti(sample_img, corr_p, output_ps)
+
+        print("Correlation Analysis Finished")
+
+    @staticmethod
+    def voxel_wise_partial_pearson_images_scale(
+            images: list[str], scale: list[float], covariate: list, mask: str, output_rs: str
+            ) -> None:
+        """Calculates the partial pearson correlation coefficient between images and scalars
+        (i.e. a neuropsychological scale) for each voxel in the mask image. Takes a covariate.
+        If you do not need to include the covariate just use applePy.Analysis.voxel_wise_corr_images_vs_scale.
+
+        :param images: a list of paths for the  images
+        :param scale: a list of scale values
+        :param covariate: a list of covariate values
+        :param mask: the path to the mask image
+        :param output_rs: the path to the output file for the correlation coefficients
+        """
+        mask_img: nib.Nifti1Image | nib.AnalyzeImage
+        mask_data: npt.NDArray
         mask_img, mask_data = Utils.load_nifti(mask)
 
+        sample_img: nib.Nifti1Image | nib.AnalyzeImage
+        sample_data: npt.NDArray
         sample_img, sample_data = Utils.load_nifti(images[0])
 
         corr_r = sample_data * 0
@@ -330,89 +377,21 @@ class Analysis:
         print("Correlation Analysis Finished")
 
     @staticmethod
-    def voxel_wise_pearson_images_scale(
-        images, scale, mask, output_rs, output_ps, corr="pearson"
-    ):
-        """Calculates the pearson correlation coefficient and p-value between images and scalars (i.e. a neurpsychological scale)
-        for each voxel in the mask image.
-        :param images: a list of paths for the images
-        :type images: list
-        :param scale: a list of scale values
-        :type scale: list
-        :param mask: the path to the mask image
-        :type mask: str
-        :param output_rs: the path to the output file for the correlation coefficients
-        :type output_rs: str
-        :param output_ps: the path to the output file for the p-values
-        :type output_ps: str
-        :param corr: the type of correlation coefficient to calculate
-        :type corr: str
-        """
-
-        mask_data = Utils.load_nifti(mask, only_data=True)
-        sample_img, sample_data = Utils.load_nifti(images[0])
-
-        corr_r = sample_data * 0
-        corr_p = sample_data * 0
-
-        data = sample_data[..., np.newaxis]
-
-        for image in images[1:]:
-            img_data = Utils.load_nifti(image, only_data=True)
-            img_data = img_data[..., np.newaxis]
-            data = np.append(data, img_data, axis=3)
-
-        print("Data shape: ", data.shape)
-        print("Mask shape: ", mask_data.shape)
-        print("Scale values: ", len(scale))
-
-        for i in range(sample_data.shape[0]):
-            for j in range(sample_data.shape[1]):
-                for k in range(sample_data.shape[2]):
-                    if mask_data[i, j, k] == 0:
-                        pass
-
-                    else:
-                        data_array = data[i, j, k, :]
-
-                        if corr == "pearson":
-                            r_, p_ = pearsonr(data_array, scale)
-
-                        elif corr == "spearman":
-                            r_, p_ = spearmanr(data_array, scale)
-
-                        else:
-                            raise ValueError(
-                                "corr variable must be pearson or spearman"
-                            )
-
-                        corr_r[i, j, k] = r_
-                        corr_p[i, j, k] = p_
-
-        Utils.save_nifti(sample_img, corr_r, output_rs)
-        Utils.save_nifti(sample_img, corr_p, output_ps)
-
-        print("Correlation Analysis Finished")
-
-    @staticmethod
-    def image_to_image_corr_atlas_based_spearsman(image_1, image_2, atlas):
+    def image_to_image_corr_atlas_based_spearman(image_1: str, image_2: str, atlas: str) -> Tuple[float, float]:
         """Calculates the spearman correlation coefficient and p-value between two images using
         the atlas ROI-values extracted for each region of interest (ROI) defined by an atlas.
 
         :param image_1: the path to the first image
-        :type image_1: str
         :param image_2: the path to the second image
-        :type image_2: str
         :param atlas: the path to the atlas image that defines the ROIs
-        :type atlas: str
-        :return: the spearman correlation coefficient and the p-value for each ROI
-        :rtype: float, float
+        :return rho: correlation coefficient
+        :return p: p-value
         """
 
         # Load the two images + atlas using nibabel library
-        img_1_data = Utils.load_nifti(image_1, only_data=True)
-        img_2_data = Utils.load_nifti(image_2, only_data=True)
-        atlas_data = Utils.load_nifti(atlas, only_data=True)
+        img_1_data: npt.NDArray = Utils.load_nifti(image_1, only_data=True)
+        img_2_data: npt.NDArray = Utils.load_nifti(image_2, only_data=True)
+        atlas_data: npt.NDArray = Utils.load_nifti(atlas, only_data=True)
 
         # Get the unique values of the atlas, which correspond to the ROIs
         rois = np.unique(atlas_data)
@@ -441,15 +420,12 @@ class Analysis:
         return rho, p
 
     @staticmethod
-    def ncc(img1_path, img2_path):
+    def normalized_cross_correlation_2images(img1_path: str, img2_path: str) -> float:
         """Calculates the normalized cross correlation (NCC) between two images.
 
         :param img1_path: the path to the first image
-        :type img1_path: str
         :param img2_path: the path to the second image
-        :type img2_path: str
         :return: the NCC value between the two images
-        :rtype: float
         """
 
         # Load Nifti images
@@ -466,16 +442,21 @@ class Analysis:
         numerator = np.sum(img1_data * img2_data)
 
         # Calculate the denominator of the NCC equation
-        denominator = np.sqrt(np.sum(img1_data**2) * np.sum(img2_data**2))
+        denominator = np.sqrt(np.sum(img1_data ** 2) * np.sum(img2_data ** 2))
 
         # Calculate and return the NCC
         return numerator / denominator
 
     @staticmethod
-    def spm_map_2_cohens_d(img, out, len_1, len_2):
+    def spm_map_2_cohens_d(img: str, out: str, len_1: int, len_2: int) -> None:
         """
-        Converts an image to cohens_d
-        Expected input is a spmT_0001.nii file
+        Converts an image of t_values to cohens_d
+
+        :param img: Input image (spmT_0001.nii)
+        :param out: Output file name
+        :param len_1: len of group 1 in stat comparison
+        :param len_2: len of group 2 in stat comparison
+
         """
         img, data = Utils.load_nifti(img)
         d_coeff = np.sqrt(1 / len_1 + 1 / len_2)
@@ -484,7 +465,14 @@ class Analysis:
         Utils.save_nifti(img, data, out)
 
     @staticmethod
-    def get_tvalue_thresholds_FDR(img_, n1, n2):
+    def get_cohens_d_thresholds_fdr(img_: str, n1: int, n2: int) -> float:
+        """
+
+        :param img_: Path to spmT_0001.nii
+        :param n1: len of group 1 in stat comparison
+        :param n2: len of group 2 in stat comparison
+        :return: FDR-corrected Cohen's d threshold
+        """
         # Load the NIFTI image
         data = Utils.load_nifti(img_, only_data=True)
 
@@ -508,23 +496,20 @@ class Analysis:
             new_file.write(str(cohens_thres))
         new_file.close()
 
+        return cohens_thres
+
 
 class Preprocessing:
     @staticmethod
-    def normalize_histogram(input_image, template, mask, output):
+    def normalize_histogram(input_image: str, template: str, mask: str, output: str) -> float:
         """Normalizes an image using the mode of an intensity histogram.
         More info at: https://pubmed.ncbi.nlm.nih.gov/32771619/
 
         :param input_image: the path to the input image
-        :type input_image: str
         :param template: the path to the template image
-        :type template: str
         :param mask: the path to the mask image
-        :type mask: str
         :param output: the path to the output image
-        :type output: str
         :return: the normalization value used to scale the input image
-        :rtype: float
         """
 
         fdg, fdg_data = Utils.load_nifti(input_image)
@@ -541,10 +526,10 @@ class Preprocessing:
         fdg_data = fdg_data * (mean_template / mean_fdg)
 
         division = template_data[indx] / fdg_data[indx]
-        values, bins = np.histogram(division, 200, range=[0.5, 2])
+        values, bins = np.histogram(division, 200, range=(0.5, 2))
         amax = np.amax(values)
         indx = np.where(values == amax)
-        norm_value = bins[indx][0]
+        norm_value = float(bins[indx][0])
         fdg_data = fdg_data * norm_value
 
         Utils.save_nifti(fdg, fdg_data, output)
@@ -552,17 +537,13 @@ class Preprocessing:
         return norm_value
 
     @staticmethod
-    def normalize_using_ref_region(input_image, output_image, ref_region):
+    def normalize_using_ref_region(input_image: str, output_image: str, ref_region: str) -> float:
         """Normalizes an image using a reference region.
 
         :param input_image: the path to the input image
-        :type input_image: str
         :param output_image: the path to the output image
-        :type output_image: str
         :param ref_region: the path to the reference region image
-        :type ref_region: str
-        :return: None
-        :rtype: None
+        :return: the normalization value used to scale the input image
         """
         pons_img = Utils.load_nifti(ref_region, only_data=True)
 
@@ -579,18 +560,16 @@ class Preprocessing:
 
         Utils.save_nifti(input_img, normalized_img, output_image)
 
+        return pons_value
+
     @staticmethod
-    def histogram_matching(reference_nii, input_nii, output_nii):
+    def histogram_matching(reference_nii: str, input_nii: str, output_nii: str) -> None:
         """Matches the histogram of an input image to a reference image.
 
         :param reference_nii: the path to the reference image
-        :type reference_nii: str
         :param input_nii: the path to the input image
-        :type input_nii: str
         :param output_nii: the path to the output image
-        :type output_nii: str
         :return: None
-        :rtype: None
         """
 
         nt_data = Utils.load_nifti(reference_nii, only_data=True)
@@ -605,8 +584,8 @@ class Preprocessing:
 
         # get the set of unique pixel values and their corresponding indices and counts
         s_values, bin_idx, s_counts = np.unique(
-            pt_data_array, return_inverse=True, return_counts=True
-        )
+                pt_data_array, return_inverse=True, return_counts=True
+                )
         t_values, t_counts = np.unique(nt_data_array, return_counts=True)
 
         # take the cumsum of the counts and normalize by the number of pixels to
@@ -629,23 +608,16 @@ class Preprocessing:
 
     @staticmethod
     def logpow_histogram_matching(
-        reference_nii, input_nii, output_nii, alpha=1, beta=3
-    ):
+            reference_nii: str, input_nii: str, output_nii: str, alpha: int = 1, beta: int = 3
+            ) -> None:
         """Matches the histogram of an input image to a reference image using a log-power transformation.
         More info: https://doi.org/10.1117/1.JEI.23.6.063017
 
         :param reference_nii: the path to the reference image
-        :type reference_nii: str
         :param input_nii: the path to the input image
-        :type input_nii: str
         :param output_nii: the path to the output image
-        :type output_nii: str
         :param alpha: the additive constant for the log transformation, defaults to 1
-        :type alpha: int, optional
         :param beta: the power exponent for the log transformation, defaults to 3
-        :type beta: int, optional
-        :return: the path to the output image
-        :rtype: str
         """
         nt_data = Utils.load_nifti(reference_nii, only_data=True)
         patient, pt_data = Utils.load_nifti(input_nii)
@@ -659,8 +631,8 @@ class Preprocessing:
 
         # get the set of unique pixel values and their corresponding indices and counts
         s_values, bin_idx, s_counts = np.unique(
-            pt_data_array, return_inverse=True, return_counts=True
-        )
+                pt_data_array, return_inverse=True, return_counts=True
+                )
         t_values, t_counts = np.unique(nt_data_array, return_counts=True)
 
         s_counts = np.power(np.log10(s_counts + alpha), beta)
@@ -686,8 +658,8 @@ class Preprocessing:
 
     @staticmethod
     def estimate_fwhm_mizutani(
-        nifti, bin_size=5, n_segs=2, orientation="axial", plot=False
-    ):
+            nifti: str, bin_size: int = 5, n_segs: int = 2, orientation="axial", plot=False
+            ) -> Tuple[float, float]:
         """
         This function estimates image xy resolution based in
         a previous method implemented by MIZUTANI ET AL. for microscopy imaging:
@@ -700,22 +672,17 @@ class Preprocessing:
         The FWHMs are estimated from multiple regression of the logarithm of the square norm of
         the image Fourier transform against the square distance from the origin in the Fourier
         domain(essentially from what is known as a Wilson plot).
-        The lower frequencies in the Wilson plot are linearly fitted
-        and the PSF is estimated from the slope.
+        The lower frequencies in the Wilson plot are linearly fitted and the PSF is estimated from the slope.
 
-        :param orientation: plane to walk traverse the image (axial, sagittal, coronal).
         :param nifti: input nifti image
 
-        :param bin_size: In the original paper from Mizutani,
-        the logarithm of the average squared norm in each
-        5 × 5 pixel bin of the Fourier transform was used.
-        You can vary this to check what fits your data better.
-        Values between 5 and 10 seem to work well for PET images.
-
-        :param plot: If True, the function will plot the Wilson
-        plots and fitted lines for quality check.
-
-        :return: The average FWHM across all slices in the image.
+        :param bin_size:  In the original paper from Mizutani, the logarithm of the average squared norm in
+        each  5 × 5 pixel bin of the Fourier transform was used. You can vary this to check what fits your data
+        better. Values between 5 and 10 seem to work well for PET images.
+        :param n_segs: the number of segments of the Fourier transform.
+        :param orientation: plane to walk traverse the image (axial, sagittal, coronal).
+        :param plot: If True, the function will plot the Wilson plots and fitted lines for quality check.
+        :return: The average FWHM and sigma across all slices in the image.
         """
 
         img, volume = Utils.load_nifti(nifti)
@@ -739,6 +706,8 @@ class Preprocessing:
                 slice_2d = volume[:, i, :]
             elif orientation == "sagittal":
                 slice_2d = volume[i, :, :]
+            else:
+                raise TypeError("orientation must be set to axial, coronal or sagital")
 
             # Compute the 2D Fourier transform of the input slice
             fourier_slice = fftshift(fftn(slice_2d))
@@ -751,13 +720,13 @@ class Preprocessing:
 
             # Calculate k^2 values (distances from the origin in Fourier domain)
             k_values = np.array(
-                np.meshgrid(
-                    np.fft.fftshift(np.fft.fftfreq(slice_2d.shape[0])),
-                    np.fft.fftshift(np.fft.fftfreq(slice_2d.shape[1])),
-                    indexing="ij",
-                )
-            )
-            k_squared = np.sum(k_values**2, axis=0)
+                    np.meshgrid(
+                            np.fft.fftshift(np.fft.fftfreq(slice_2d.shape[0])),
+                            np.fft.fftshift(np.fft.fftfreq(slice_2d.shape[1])),
+                            indexing="ij",
+                            )
+                    )
+            k_squared = np.sum(k_values ** 2, axis=0)
 
             # Calculate the number of bins along each axis
             num_bins_x = slice_2d.shape[0] // bin_size
@@ -771,17 +740,17 @@ class Preprocessing:
                 for y in range(num_bins_y):
                     # Compute the average of log_square_norm and k_squared within the 5x5 bin
                     log_square_norm_binned[x, y] = np.mean(
-                        log_square_norm[
-                            x * bin_size : (x + 1) * bin_size,
-                            y * bin_size : (y + 1) * bin_size,
-                        ]
-                    )
+                            log_square_norm[
+                            x * bin_size: (x + 1) * bin_size,
+                            y * bin_size: (y + 1) * bin_size,
+                            ]
+                            )
                     k_squared_binned[x, y] = np.mean(
-                        k_squared[
-                            x * bin_size : (x + 1) * bin_size,
-                            y * bin_size : (y + 1) * bin_size,
-                        ]
-                    )
+                            k_squared[
+                            x * bin_size: (x + 1) * bin_size,
+                            y * bin_size: (y + 1) * bin_size,
+                            ]
+                            )
 
             # Flatten the binned arrays and remove zero elements
             k_squared_flat = k_squared_binned.flatten()
@@ -806,7 +775,7 @@ class Preprocessing:
             slope, intercept = model.slopes[0], model.intercepts[0]
 
             # Calculate the width σ of the standard PSF
-            sigma = np.sqrt(-slope / (4 * np.pi**2))
+            sigma = np.sqrt(-slope / (4 * np.pi ** 2))
             sigma_values.append(sigma)
 
             # Calculate the FWHM of the PSF
@@ -821,8 +790,8 @@ class Preprocessing:
                 plt.ylabel("ln|F(k)|^2")
                 plt.title("Wilson plot with fitted line")
                 plt.ylim(
-                    [np.min(log_square_norm_flat) - 5, np.max(log_square_norm_flat) + 5]
-                )
+                        [np.min(log_square_norm_flat) - 5, np.max(log_square_norm_flat) + 5]
+                        )
                 plt.show()
 
         return np.nanmean(fwhm_values), np.nanmean(sigma_values)
@@ -832,42 +801,37 @@ class Utils:
     """Small Utilities for imaging work"""
 
     @staticmethod
-    def load_nifti(img_path, only_data=False):
+    def load_nifti(img_path: str, only_data=False) -> (nib.Nifti1Image | nib.AnalyzeImage, npt.NDArray):
         """Gets image path, returns image object and data"""
-        img = nib.load(img_path)
-        data = img.get_fdata()
+        img: nib.Nifti1Image | nib.AnalyzeImage = nib.load(img_path)
+        data: npt.NDArray = img.get_fdata()
 
         if only_data:
             return data
         return img, data
 
     @staticmethod
-    def save_nifti(template_img, data, out_path):
-        """Gets template image object for header, data and outpath
+    def save_nifti(template_img: nib.Nifti1Image | nib.AnalyzeImage, data: npt.NDArray, out_path: str):
+        """Gets template image object for header | affine, data and output path
         Saves the image"""
+
         img = nib.Nifti1Image(data, template_img.affine, template_img.header)
         nib.save(img, out_path)
 
     @staticmethod
-    def _check_input_image_shape(img_data):
+    def _check_input_image_shape(img_data: npt.NDArray) -> npt.NDArray:
         if img_data.ndim != 3:
             img_data = img_data[:, :, :, 0]
 
         return img_data
 
     @staticmethod
-    def change_image_dtype(input_filepath, output_filepath, new_dtype=np.float32):
+    def change_image_dtype(input_filepath: str, output_filepath: str, new_dtype: dtype = np.float32):
         """
-        Options for new_dtype
-        np.uint8: 8-bit unsigned integer
-        np.uint16: 16-bit unsigned integer
-        np.uint32: 32-bit unsigned integer
-        np.int8: 8-bit signed integer
-        np.int16: 16-bit signed integer
-        np.int32: 32-bit signed integer
-        np.float16: 16-bit floating-point
-        np.float32: 32-bit floating-point (single precision)
-        np.float64: 64-bit floating-point (double precision)
+        Changes datatype for input image
+        :param input_filepath: path to input image
+        :param output_filepath: path to output image
+        :param new_dtype: new datatype for output image (np.uint8, np.uint16, np.uint32, np.int8, np.int16, np.int32, np.float16, np.float32,np.float64)
         """
 
         # Load NIfTI or Analyze image
@@ -883,14 +847,16 @@ class Utils:
             header = img.header.copy()
             header.set_data_dtype(new_dtype)
             new_img = nib.analyze.AnalyzeImage(new_img_data, img.affine, header)
+        else:
+            raise TypeError("Unsupported image type. Input must be Nifti of Analyze")
 
         # Save the image with the changed data type to the specified output filepath
         nib.save(new_img, output_filepath)
 
     @staticmethod
     def resample_image_by_matrix_size(
-        input_filepath, output_filepath, target_shape, interpolation="linear"
-    ):
+            input_filepath: str, output_filepath: str, target_shape: tuple, interpolation: str = "linear"
+            ) -> None:
         """
         # Example usage
         input_image_file = '/path/to/input/image/file.nii.gz'
@@ -912,22 +878,22 @@ class Utils:
 
         # Determine the order of interpolation based on the given method
         interpolation_methods = {
-            "nearest": 0,
-            "linear": 1,
-            "cubic": 3,
-            "quadratic": 4,
-            # Add more interpolation methods and their corresponding order values here
-        }
+                "nearest"  : 0,
+                "linear"   : 1,
+                "cubic"    : 3,
+                "quadratic": 4,
+                # Add more interpolation methods and their corresponding order values here
+                }
         order = interpolation_methods.get(
-            interpolation, 1
-        )  # Default to linear if method not recognized
+                interpolation, 1
+                )  # Default to linear if method not recognized
 
         # Resample the image data using scipy's zoom function
         resampled_img_data = zoom(img_data, zoom_factors, order=order)
 
         # Update the affine matrix to reflect the new voxel dimensions
         voxel_sizes = np.array(img.header.get_zooms()) * (
-            np.array(img_data.shape) / target_shape
+                np.array(img_data.shape) / target_shape
         )
         new_affine = img.affine.copy()
         np.fill_diagonal(new_affine, voxel_sizes)
@@ -935,22 +901,24 @@ class Utils:
         # Create a new NIfTI or Analyze image with the resampled data and updated affine
         if isinstance(img, nib.nifti1.Nifti1Image):
             resampled_img = nib.Nifti1Image(
-                resampled_img_data, new_affine, header=img.header
-            )
+                    resampled_img_data, new_affine, header=img.header
+                    )
         elif isinstance(img, nib.analyze.AnalyzeImage):
             header = img.header.copy()
             header.set_data_shape(target_shape)
-            resampled_img = nib.analyze.AnalyzeImage(
-                resampled_img_data, new_affine, header
-            )
+            resampled_img: nib.AnalyzeImage = nib.analyze.AnalyzeImage(
+                    resampled_img_data, new_affine, header
+                    )
+        else:
+            raise TypeError("Unsupported image type. Input must be Nifti of Analyze")
 
         # Save the resampled image to the specified output filepath
         nib.save(resampled_img, output_filepath)
 
     @staticmethod
     def resample_image_by_voxel_sizes(
-        input_filepath, output_filepath, target_voxel_sizes, interpolation="linear"
-    ):
+            input_filepath: str, output_filepath: str, target_voxel_sizes: tuple, interpolation: str = "linear"
+            ) -> None:
         """
         # Example usage
         input_image_file = '/path/to/input/image/file.nii.gz'
@@ -962,8 +930,7 @@ class Utils:
         """
 
         # Load NIfTI or Analyze image
-        img = nib.load(input_filepath)
-        img_data = img.get_fdata()
+        img, img_data = Utils.load_nifti(input_filepath)
 
         # Calculate zoom factors based on target voxel sizes
         current_voxel_sizes = np.array(img.header.get_zooms())
@@ -971,15 +938,15 @@ class Utils:
 
         # Determine the order of interpolation based on the given method
         interpolation_methods = {
-            "nearest": 0,
-            "linear": 1,
-            "cubic": 3,
-            "quadratic": 4,
-            # Add more interpolation methods and their corresponding order values here
-        }
+                "nearest"  : 0,
+                "linear"   : 1,
+                "cubic"    : 3,
+                "quadratic": 4,
+                # Add more interpolation methods and their corresponding order values here
+                }
         order = interpolation_methods.get(
-            interpolation, 1
-        )  # Default to linear if method not recognized
+                interpolation, 1
+                )  # Default to linear if method not recognized
 
         # Resample the image data using scipy's zoom function
         resampled_img_data = zoom(img_data, zoom_factors, order=order)
@@ -991,29 +958,29 @@ class Utils:
         # Create a new NIfTI or Analyze image with the resampled data and updated affine
         if isinstance(img, nib.nifti1.Nifti1Image):
             resampled_img = nib.Nifti1Image(
-                resampled_img_data, new_affine, header=img.header
-            )
+                    resampled_img_data, new_affine, header=img.header
+                    )
         elif isinstance(img, nib.analyze.AnalyzeImage):
             header = img.header.copy()
             resampled_img = nib.analyze.AnalyzeImage(
-                resampled_img_data, new_affine, header
-            )
+                    resampled_img_data, new_affine, header
+                    )
+        else:
+            raise TypeError("Unsupported image type. Input must be Nifti of Analyze")
 
         # Save the resampled image to the specified output filepath
         nib.save(resampled_img, output_filepath)
 
     @staticmethod
-    def remove_nan_negs(input_filepath, output_filepath):
+    def remove_nan_negs(input_filepath: str, output_filepath: str) -> None:
         """
         Removes nan and neg values from image
         :param input_filepath: Input image filepath as Nifti or Analyze
         :param output_filepath: Output image filepath as Nifti or Analyze
-        :return:
         """
 
         # Load NIfTI or Analyze image
-        img = nib.load(input_filepath)
-        img_data = img.get_fdata()
+        img, img_data = Utils.load_nifti(input_filepath)
 
         # Replace NaN and negative values with zeros
         img_data[np.isnan(img_data) | (img_data < 0)] = 0
@@ -1024,12 +991,14 @@ class Utils:
         elif isinstance(img, nib.analyze.AnalyzeImage):
             header = img.header.copy()
             cleaned_img = nib.analyze.AnalyzeImage(img_data, img.affine, header)
+        else:
+            raise TypeError("Unsupported image type. Input must be Nifti of Analyze")
 
         # Save the cleaned image to the specified output filepath
         nib.save(cleaned_img, output_filepath)
 
     @staticmethod
-    def reorient_and_clean(img_path, out_path):
+    def reorient_and_clean(img_path: str, out_path: str) -> None:
         img = nib.load(img_path)
 
         # Reorient to closest canonical orientation
@@ -1050,41 +1019,26 @@ class Utils:
 
     @staticmethod
     def add_poisson_noise(
-        input_filepath, output_filepath, intensity_scaling_factor=1.0
-    ):
+            input_filepath: str, output_filepath: str, intensity_scaling_factor: float = 1.0
+            ) -> None:
         """Adds poison noise to an image"""
         # Load NIfTI or Analyze image
-        img = nib.load(input_filepath)
+        img, data = Utils.load_nifti(input_filepath)
         img_data = img.get_fdata()
 
         # Apply Poisson noise to the image
-        noisy_img_data = np.random.poisson(img_data * intensity_scaling_factor)
-
-        # Create a new NIfTI or Analyze image with the noisy data
-        if isinstance(img, nib.nifti1.Nifti1Image):
-            noisy_img = nib.Nifti1Image(noisy_img_data, img.affine, img.header)
-            nib.save(noisy_img, output_filepath)
-
-        elif isinstance(img, nib.analyze.AnalyzeImage):
-            noisy_img = nib.analyze.AnalyzeImage(noisy_img_data, img.affine, img.header)
-            nib.save(noisy_img, output_filepath)
-
-        # Save the noisy image to the specified output filepath
+        noisy_img_data: npt.NDArray = np.random.poisson(img_data * intensity_scaling_factor)
+        Utils.save_nifti(img, noisy_img_data, output_filepath)
 
     @staticmethod
-    def apply_constant_to_img(image, c, operation, output=False):
+    def apply_constant_to_img(image: str, c: float, operation: str, output: str = False) -> None:
         """This function applies a constant to an image using a
         specified operation, and saves the result in a new image.
 
         :param image: the name of the image file to be processed
-        :type image: str
         :param c: the constant to be applied to the image
-        :type c: float
         :param operation: Operation to be performed on the image. It can be 'mult', 'div' or 'sum'
-        :type operation: str
         :param output: If False, the output file will have the same name as the input file
-        :type output: str or bool
-        :return: None
         """
         if output:
             output_file = output
