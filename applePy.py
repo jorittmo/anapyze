@@ -2,7 +2,7 @@ import os
 import subprocess
 from os.path import dirname, exists, join
 from textwrap import dedent
-from typing import Any, Tuple
+from typing import Tuple
 
 import matplotlib.pyplot as plt
 import nibabel as nib
@@ -11,7 +11,6 @@ import numpy.typing as npt
 import pandas as pd
 import pingouin as pg
 import pwlf
-from numpy import dtype, long, ndarray, signedinteger
 from scipy.fftpack import fftn, fftshift
 from scipy.ndimage import zoom
 from scipy.stats import pearsonr, spearmanr, t
@@ -765,7 +764,7 @@ class Preprocessing:
 
             # Determine the optimal number of line segments
             n_segments = n_segs
-            breakpoints = model.fit(n_segments)
+            model.fit(n_segments)
 
             # Predict the fitted line
             x_pred = np.linspace(k_squared_flat.min(), k_squared_flat.max(), 100)
@@ -826,7 +825,7 @@ class Utils:
         return img_data
 
     @staticmethod
-    def change_image_dtype(input_filepath: str, output_filepath: str, new_dtype: dtype = np.float32):
+    def change_image_dtype(input_filepath: str, output_filepath: str, new_dtype: np.dtype = np.float32):
         """
         Changes datatype for input image
         :param input_filepath: path to input image

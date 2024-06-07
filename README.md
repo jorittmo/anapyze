@@ -1,4 +1,4 @@
-# anapyze
+# Anapyze
 
 A bunch of tools for medical (mostly neuro) image processing and statistics that I have crafted over the years.
 This is mostly for my personal use, but feel free to look around!!
