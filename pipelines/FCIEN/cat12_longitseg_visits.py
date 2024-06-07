@@ -1,17 +1,9 @@
 import warnings
 warnings.filterwarnings("ignore")
 
-import os,sys
-import shutil
-import gzip
-import nibabel as nib
-from os.path import join, exists, isdir, basename
-import numpy as np
-import time
+import os
+from os.path import join, exists, isdir
 
-anapyze_dir = r'/Users/jsilva/repositories/anapyze'
-anapyze_rsc = join(anapyze_dir,'resources')
-sys.path.insert(0,anapyze_dir)
 from spm import CAT12
 
 # CONFIG

@@ -1,9 +1,10 @@
 import warnings
 warnings.filterwarnings("ignore")
 
-import os,sys
+import os
 import shutil
 from os.path import join, exists
+from spm import CAT12
 
 """
 Note that this script expects that you have run the 0_Reorder_Data.py first
@@ -18,15 +19,10 @@ A MATLAB script named ‘cat_12.m’ is created that is recommended to be run se
 Alternatively you can run it here stating run=False in the spm_proc.cat12seg_imgs line, but you will not take advantage of the multi-threading capabilities of cat12. It is fine for a few images.
 """
 
-anapyze_dir = r'C:\Users\jesus\Work\repos\anapyze'
 dir_patients = r'D:/IBIS_DATA/Reorder_New'
 spm_path = r'C:\Users\jesus\Work\software\spm12'
 tpm = join(spm_path, 'tpm','TPM.nii')
 template_volumes = join(spm_path, r'toolbox\cat12\templates_MNI152NLin2009cAsym','Template_0_GS.nii')
-
-
-sys.path.insert(0,anapyze_dir)
-from spm import CAT12
 
 list_dirs = os.listdir(dir_patients)
 

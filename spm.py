@@ -419,16 +419,16 @@ class SPM:
 
     def run_2sample_ttest(
             self,
-            save_dir,
-            group1,
-            group2,
-            group1_ages,
-            group2_ages,
-            group1_tiv=False,
-            group2_tiv=False,
-            mask=False,
-            contrast_name="contrast",
-            contrast="[1 -1 0 0]",
+            save_dir: str,
+            group1: list[str],
+            group2: list[str],
+            group1_ages: list[float],
+            group2_ages: list[float],
+            group1_tiv: list[float] = False,
+            group2_tiv: list[float] = False,
+            mask: str = False,
+            contrast_name: str = "contrast",
+            contrast: str = "[1 -1 0 0]",
             ):
 
         if exists(save_dir):
@@ -585,7 +585,7 @@ class SPM:
         new_spm.close()
 
 
-class CAT12(object):
+class CAT12:
     """
     This class will create .m scripts and parse them to matlab to run SPM.
     I have modified this class to make use of matlab instead os SPM standalone.
@@ -619,7 +619,7 @@ class CAT12(object):
             template_tpm: str,
             template_volumes: str,
             number_of_cores: int = 0,
-            output_vox_size: int = 1.5,
+            output_vox_size: float = 1.5,
             bounding_box: str = "cat12",
             surface_processing: int = 0,
             run=False,
@@ -810,7 +810,7 @@ class CAT12(object):
             template_volumes: str,
             longmodel: int = 2,
             number_of_cores: int = 2,
-            output_vox_size: int = 1.5,
+            output_vox_size: float = 1.5,
             bounding_box: str = "cat12",
             surface_processing: int = 0,
             run=False,
@@ -900,11 +900,11 @@ class CAT12(object):
             self,
             save_dir: str,
             group1: list[str],
-            group1_ages: list[int],
-            group1_tivs: list[int],
+            group1_ages: list[float],
+            group1_tivs: list[float],
             group2: list[str],
-            group2_ages: list[int],
-            group2_tivs: list[int],
+            group2_ages: list[float],
+            group2_tivs: list[float],
             mask: str,
             ):
         if exists(save_dir):
@@ -1032,3 +1032,5 @@ class CAT12(object):
 
         except:
             raise KeyError("Could not extract IQRS")
+
+# %%

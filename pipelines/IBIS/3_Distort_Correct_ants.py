@@ -1,7 +1,7 @@
 import warnings
 warnings.filterwarnings("ignore")
 
-import os,sys
+import os
 
 import nibabel as nib
 from os.path import join, exists
@@ -9,10 +9,6 @@ import numpy as np
 import time
 from datetime import datetime
 import nilearn.image as proc
-
-anapyze_dir = r'C:\Users\jesus\Work\repos\anapyze'
-anapyze_rsc = join(anapyze_dir,'resources')
-sys.path.insert(0,anapyze_dir)
 
 """
 This script corrects distortions in the DTI data using 'dipy', 'nilearn', and 'nibabel' libraries along with ANTs software. 
