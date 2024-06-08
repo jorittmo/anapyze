@@ -818,7 +818,7 @@ class Utils:
         nib.save(img, out_path)
 
     @staticmethod
-    def _check_input_image_shape(img_data: npt.NDArray) -> npt.NDArray:
+    def check_input_image_shape(img_data: npt.NDArray) -> npt.NDArray:
         if img_data.ndim != 3:
             img_data = img_data[:, :, :, 0]
 
