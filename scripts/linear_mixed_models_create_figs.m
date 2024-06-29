@@ -6,272 +6,159 @@ formula_adnidelta_mmse = 'DMEMEF ~ TimeFromBaseliney*(Group) +  BL_Age + Sex + E
 formula_mmse = 'MMSE ~ TimeFromBaseliney*(Group) +  BL_Age + Sex + Education + (TimeFromBaseliney|Subject)';
 
 %MMSE
-lme_mmse_mci = fitlme(CLINICALMMSELongitMCI,formula_mmse);
-lme_mmse_ad = fitlme(CLINICALMMSELongitAD,formula_mmse);
+lme_mmse = fitlme(CLINICALMMSELongit,formula_mmse);
 
 %ADNI_MEM
-lme_adnimem_mci = fitlme(CLINICALCOMPLongitMCI,formula_adnimem_mmse);
-lme_adnimem_ad = fitlme(CLINICALCOMPLongitAD,formula_adnimem_mmse);
+lme_adnimem = fitlme(CLINICALCOMPLongit,formula_adnimem_mmse);
 
 %ADNI_EF
-lme_adnief_mci = fitlme(CLINICALCOMPLongitMCI,formula_adnief_mmse);
-lme_adnief_ad = fitlme(CLINICALCOMPLongitAD,formula_adnief_mmse);
+lme_adnief = fitlme(CLINICALCOMPLongit,formula_adnief_mmse);
 
-%ADNI_VS
-lme_adnivs_mci = fitlme(CLINICALCOMPLongitMCI,formula_adnidelta_mmse);
-lme_adnivs_ad = fitlme(CLINICALCOMPLongitAD,formula_adnidelta_mmse);
+%ADNI_DMEMEF
+lme_adnidelta = fitlme(CLINICALCOMPLongit,formula_adnidelta_mmse);
 
-% Predictions for MCI
+%-----------------------------------------------------------------------
 
-subplot(2,4,1);
+% Predict and Plot
+
+subplot(2,2,1);
 
 % MMSE MCI
 
-% Set AD-like
-Dummy_MCI(:,'Group') = {'A+T+Asyn-'};
+% Set AD+LB-
+Dummy_Patient(:,'Group') = {'AD+LB-'};
 % Predict
-[ypred,yCI,DF] = predict(lme_mmse_mci,Dummy_MCI);
+[ypred,yCI,DF] = predict(lme_mmse,Dummy_Patient);
 % Plot
-boundedline(Dummy_MCI.TimeFromBaseliney, ypred, [ypred-yCI(:,1) yCI(:,2)-ypred],'alpha','r')
+boundedline(Dummy_Patient.TimeFromBaseliney, ypred, [ypred-yCI(:,1) yCI(:,2)-ypred],'alpha','r')
 
-% Set Mixed
-Dummy_MCI(:,'Group') = {'A+T+Asyn+'};
+% Set AD-LB+
+Dummy_Patient(:,'Group') = {'AD-LB+'};
 % Predict
-[ypred,yCI,DF] = predict(lme_mmse_mci,Dummy_MCI);
+[ypred,yCI,DF] = predict(lme_mmse_mci,Dummy_Patient);
 % Plot
-boundedline(Dummy_MCI.TimeFromBaseliney, ypred, [ypred-yCI(:,1) yCI(:,2)-ypred],'alpha','g')
+boundedline(Dummy_Patient.TimeFromBaseliney, ypred, [ypred-yCI(:,1) yCI(:,2)-ypred],'alpha','g')
 
-% Set LB
-Dummy_MCI(:,'Group') = {'Asyn+'};
+% Set AD+LB+
+Dummy_Patient(:,'Group') = {'AD+LB+'};
 % Predict
-[ypred,yCI,DF] = predict(lme_mmse_mci,Dummy_MCI);
+[ypred,yCI,DF] = predict(lme_mmse_mci,Dummy_Patient);
 % Plot
-boundedline(Dummy_MCI.TimeFromBaseliney, ypred, [ypred-yCI(:,1) yCI(:,2)-ypred],'alpha','b')
+boundedline(Dummy_Patient.TimeFromBaseliney, ypred, [ypred-yCI(:,1) yCI(:,2)-ypred],'alpha','b')
 
-Dummy_MCI(:,'Group') = {'A-T-Asyn-'};
+% Set AD-LB-
+Dummy_Patient(:,'Group') = {'AD-LB-'};
 % Predict
-[ypred,yCI,DF] = predict(lme_mmse_mci,Dummy_MCI);
+[ypred,yCI,DF] = predict(lme_mmse_mci,Dummy_Patient);
 % Plot
-boundedline(Dummy_MCI.TimeFromBaseliney, ypred, [ypred-yCI(:,1) yCI(:,2)-ypred],'alpha','m')
+boundedline(Dummy_Patient.TimeFromBaseliney, ypred, [ypred-yCI(:,1) yCI(:,2)-ypred],'alpha','m')
 
-mmse_mci_lb = ypred
-ylabel('MMSE')
-xlabel('Time from baseline (y)')
-
-subplot(2,4,2);
-
-%ADNI_MEM MCI
-
-% Set AD-like
-Dummy_MCI(:,'Group') = {'A+T+Asyn-'};
-
-% Predict
-[ypred,yCI,DF] = predict(lme_adnimem_mci,Dummy_MCI);
-% Plot
-boundedline(Dummy_MCI.TimeFromBaseliney, ypred, [ypred-yCI(:,1) yCI(:,2)-ypred],'alpha','r')
-
-Dummy_MCI(:,'Group') = {'A+T+Asyn+'};
-% Predict
-[ypred,yCI,DF] = predict(lme_adnimem_mci,Dummy_MCI);
-% Plot
-boundedline(Dummy_MCI.TimeFromBaseliney, ypred, [ypred-yCI(:,1) yCI(:,2)-ypred],'alpha','g')
-
-% Set sLB
-Dummy_MCI(:,'Group') = {'Asyn+'};
-
-% Predict
-[ypred,yCI,DF] = predict(lme_adnimem_mci,Dummy_MCI);
-% Plot
-boundedline(Dummy_MCI.TimeFromBaseliney, ypred, [ypred-yCI(:,1) yCI(:,2)-ypred],'alpha','b')
-
-% Set Negative
-Dummy_MCI(:,'Group') = {'A-T-Asyn-'};
-
-% Predict
-[ypred,yCI,DF] = predict(lme_adnimem_mci,Dummy_MCI);
-% Plot
-boundedline(Dummy_MCI.TimeFromBaseliney, ypred, [ypred-yCI(:,1) yCI(:,2)-ypred],'alpha','m')
-
-ylabel('ADNI MEM')
-xlabel('Time from baseline (y)')
-
-subplot(2,4,3);
-
-% ADNI_EF MCI
-
-% Set AD-like
-Dummy_MCI(:,'Group') = {'A+T+Asyn-'};
-
-% Predict
-[ypred,yCI,DF] = predict(lme_adnief_mci,Dummy_MCI);
-% Plot
-boundedline(Dummy_MCI.TimeFromBaseliney, ypred, [ypred-yCI(:,1) yCI(:,2)-ypred],'alpha','r')
-
-Dummy_MCI(:,'Group') = {'A+T+Asyn+'};
-% Predict
-[ypred,yCI,DF] = predict(lme_adnief_mci,Dummy_MCI);
-% Plot
-boundedline(Dummy_MCI.TimeFromBaseliney, ypred, [ypred-yCI(:,1) yCI(:,2)-ypred],'alpha','g')
-
-% Set sLB
-Dummy_MCI(:,'Group') = {'Asyn+'};
-% Predict
-[ypred,yCI,DF] = predict(lme_adnief_mci,Dummy_MCI);
-% Plot
-boundedline(Dummy_MCI.TimeFromBaseliney, ypred, [ypred-yCI(:,1) yCI(:,2)-ypred],'alpha','b')
-
-% Set Negative
-Dummy_MCI(:,'Group') = {'A-T-Asyn-'};
-% Predict
-[ypred,yCI,DF] = predict(lme_adnief_mci,Dummy_MCI);
-% Plot
-boundedline(Dummy_MCI.TimeFromBaseliney, ypred, [ypred-yCI(:,1) yCI(:,2)-ypred],'alpha','m')
-
-ylabel('ADNI EF')
-xlabel('Time from baseline (y)')
-
-subplot(2,4,4);
-
-% D(MEM_EF) MCI
-
-% Set AD-like
-Dummy_MCI(:,'Group') = {'A+T+Asyn-'};
-% Predict
-[ypred,yCI,DF] = predict(lme_adnivs_mci,Dummy_MCI);
-% Plot
-boundedline(Dummy_MCI.TimeFromBaseliney, ypred, [ypred-yCI(:,1) yCI(:,2)-ypred],'alpha','r')
-
-Dummy_MCI(:,'Group') = {'A+T+Asyn+'};
-% Predict
-[ypred,yCI,DF] = predict(lme_adnivs_mci,Dummy_MCI);
-% Plot
-boundedline(Dummy_MCI.TimeFromBaseliney, ypred, [ypred-yCI(:,1) yCI(:,2)-ypred],'alpha','g')
-
-Dummy_MCI(:,'Group') = {'Asyn+'};
-% Predict
-[ypred,yCI,DF] = predict(lme_adnivs_mci,Dummy_MCI);
-% Plot
-boundedline(Dummy_MCI.TimeFromBaseliney, ypred, [ypred-yCI(:,1) yCI(:,2)-ypred],'alpha','b')
-
-Dummy_MCI(:,'Group') = {'A-T-Asyn-'};
-% Predict
-[ypred,yCI,DF] = predict(lme_adnivs_mci,Dummy_MCI);
-% Plot
-boundedline(Dummy_MCI.TimeFromBaseliney, ypred, [ypred-yCI(:,1) yCI(:,2)-ypred],'alpha','m')
-
-ylabel('D(MEM-EF)')
-xlabel('Time from baseline (y)')
-
-% Predictions for ADD
-
-subplot(2,4,5);
-
-%MMSE AD
-
-% Set AD-like
-Dummy_AD(:,'Group') = {'A+T+Asyn-'};
-% Predict
-[ypred,yCI,DF] = predict(lme_mmse_ad,Dummy_AD);
-% Plot
-boundedline(Dummy_AD.TimeFromBaseliney, ypred, [ypred-yCI(:,1) yCI(:,2)-ypred],'alpha','r')
-
-
-% Set Mixed
-Dummy_AD(:,'Group') = {'A+T+Asyn+'};
-% Predict
-[ypred,yCI,DF] = predict(lme_mmse_ad,Dummy_AD);
-% Plot
-boundedline(Dummy_AD.TimeFromBaseliney, ypred, [ypred-yCI(:,1) yCI(:,2)-ypred],'alpha','g')
-
-
-% Set LB
-Dummy_AD(:,'Group') = {'Asyn+'};
-% Predict
-[ypred,yCI,DF] = predict(lme_mmse_ad,Dummy_AD);
-% Plot
-boundedline(Dummy_AD.TimeFromBaseliney, ypred, [ypred-yCI(:,1) yCI(:,2)-ypred],'alpha','b')
-
-mmse_ad_lb = ypred
 
 ylabel('MMSE')
 xlabel('Time from baseline (y)')
 
-subplot(2,4,6);
+subplot(2,2,2);
 
-% Set AD-like
-Dummy_AD(:,'Group') = {'A+T+Asyn-'};
-% Predict
-[ypred,yCI,DF] = predict(lme_adnimem_ad,Dummy_AD);
-% Plot
-boundedline(Dummy_AD.TimeFromBaseliney, ypred, [ypred-yCI(:,1) yCI(:,2)-ypred],'alpha','r')
+% ADNI_MEM
 
-% Set Mixed
-Dummy_AD(:,'Group') = {'A+T+Asyn+'};
+% Set AD+LB-
+Dummy_Patient(:,'Group') = {'AD+LB-'};
 % Predict
-[ypred,yCI,DF] = predict(lme_adnimem_ad,Dummy_AD);
+[ypred,yCI,DF] = predict(lme_adnimem,Dummy_Patient);
 % Plot
-boundedline(Dummy_AD.TimeFromBaseliney, ypred, [ypred-yCI(:,1) yCI(:,2)-ypred],'alpha','g')
+boundedline(Dummy_Patient.TimeFromBaseliney, ypred, [ypred-yCI(:,1) yCI(:,2)-ypred],'alpha','r')
 
-% Set LB
-Dummy_AD(:,'Group') = {'Asyn+'};
+% Set AD-LB+
+Dummy_Patient(:,'Group') = {'AD-LB+'};
 % Predict
-[ypred,yCI,DF] = predict(lme_adnimem_ad,Dummy_AD);
+[ypred,yCI,DF] = predict(lme_adnimem,Dummy_Patient);
 % Plot
-boundedline(Dummy_AD.TimeFromBaseliney, ypred, [ypred-yCI(:,1) yCI(:,2)-ypred],'alpha','b')
+boundedline(Dummy_Patient.TimeFromBaseliney, ypred, [ypred-yCI(:,1) yCI(:,2)-ypred],'alpha','g')
+
+% Set AD+LB+
+Dummy_Patient(:,'Group') = {'AD+LB+'};
+% Predict
+[ypred,yCI,DF] = predict(lme_adnimem,Dummy_Patient);
+% Plot
+boundedline(Dummy_Patient.TimeFromBaseliney, ypred, [ypred-yCI(:,1) yCI(:,2)-ypred],'alpha','b')
+
+% Set AD-LB-
+Dummy_Patient(:,'Group') = {'AD-LB-'};
+% Predict
+[ypred,yCI,DF] = predict(lme_adnimem,Dummy_Patient);
+% Plot
+boundedline(Dummy_Patient.TimeFromBaseliney, ypred, [ypred-yCI(:,1) yCI(:,2)-ypred],'alpha','m')
 
 ylabel('ADNI MEM')
 xlabel('Time from baseline (y)')
 
-subplot(2,4,7);
+subplot(2,2,3);
 
-% Set AD-like
-Dummy_AD(:,'Group') = {'A+T+Asyn-'};
-% Predict
-[ypred,yCI,DF] = predict(lme_adnief_ad,Dummy_AD);
-% Plot
-boundedline(Dummy_AD.TimeFromBaseliney, ypred, [ypred-yCI(:,1) yCI(:,2)-ypred],'alpha','r')
+% ADNI_EF
 
-% Set Mixed
-Dummy_AD(:,'Group') = {'A+T+Asyn+'};
+% Set AD+LB-
+Dummy_Patient(:,'Group') = {'AD+LB-'};
 % Predict
-[ypred,yCI,DF] = predict(lme_adnief_ad,Dummy_AD);
+[ypred,yCI,DF] = predict(lme_adnief,Dummy_Patient);
 % Plot
-boundedline(Dummy_AD.TimeFromBaseliney, ypred, [ypred-yCI(:,1) yCI(:,2)-ypred],'alpha','g')
+boundedline(Dummy_Patient.TimeFromBaseliney, ypred, [ypred-yCI(:,1) yCI(:,2)-ypred],'alpha','r')
 
-% Set Mixed
-Dummy_AD(:,'Group') = {'Asyn+'};
+% Set AD-LB+
+Dummy_Patient(:,'Group') = {'AD-LB+'};
 % Predict
-[ypred,yCI,DF] = predict(lme_adnief_ad,Dummy_AD);
+[ypred,yCI,DF] = predict(lme_adnief,Dummy_Patient);
 % Plot
-boundedline(Dummy_AD.TimeFromBaseliney, ypred, [ypred-yCI(:,1) yCI(:,2)-ypred],'alpha','b')
+boundedline(Dummy_Patient.TimeFromBaseliney, ypred, [ypred-yCI(:,1) yCI(:,2)-ypred],'alpha','g')
+
+% Set AD+LB+
+Dummy_Patient(:,'Group') = {'AD+LB+'};
+% Predict
+[ypred,yCI,DF] = predict(lme_adnief,Dummy_Patient);
+% Plot
+boundedline(Dummy_Patient.TimeFromBaseliney, ypred, [ypred-yCI(:,1) yCI(:,2)-ypred],'alpha','b')
+
+% Set AD-LB-
+Dummy_Patient(:,'Group') = {'AD-LB-'};
+% Predict
+[ypred,yCI,DF] = predict(lme_adnief,Dummy_Patient);
+% Plot
+boundedline(Dummy_Patient.TimeFromBaseliney, ypred, [ypred-yCI(:,1) yCI(:,2)-ypred],'alpha','m')
 
 ylabel('ADNI EF')
 xlabel('Time from baseline (y)')
 
-subplot(2,4,8);
+subplot(2,2,4);
 
-% Set AD-like
-Dummy_AD(:,'Group') = {'A+T+Asyn-'};
-% Predict
-[ypred,yCI,DF] = predict(lme_adnivs_ad,Dummy_AD);
-% Plot
-boundedline(Dummy_AD.TimeFromBaseliney, ypred, [ypred-yCI(:,1) yCI(:,2)-ypred],'alpha','r')
+% D(MEM_EF)
 
-% Set Mixed
-Dummy_AD(:,'Group') = {'A+T+Asyn+'};
+% Set AD+LB-
+Dummy_Patient(:,'Group') = {'AD+LB-'};
 % Predict
-[ypred,yCI,DF] = predict(lme_adnivs_ad,Dummy_AD);
+[ypred,yCI,DF] = predict(lme_adnivs_mci,Dummy_Patient);
 % Plot
-boundedline(Dummy_AD.TimeFromBaseliney, ypred, [ypred-yCI(:,1) yCI(:,2)-ypred],'alpha','g')
+boundedline(Dummy_Patient.TimeFromBaseliney, ypred, [ypred-yCI(:,1) yCI(:,2)-ypred],'alpha','r')
 
-% Set LB
-Dummy_AD(:,'Group') = {'Asyn+'};
+% Set AD-LB+
+Dummy_Patient(:,'Group') = {'AD-LB+'};
 % Predict
-[ypred,yCI,DF] = predict(lme_adnivs_ad,Dummy_AD);
+[ypred,yCI,DF] = predict(lme_adnivs_mci,Dummy_Patient);
 % Plot
-boundedline(Dummy_AD.TimeFromBaseliney, ypred, [ypred-yCI(:,1) yCI(:,2)-ypred],'alpha','b')
+boundedline(Dummy_Patient.TimeFromBaseliney, ypred, [ypred-yCI(:,1) yCI(:,2)-ypred],'alpha','g')
+
+% Set AD+LB+
+Dummy_Patient(:,'Group') = {'AD+LB+'};
+% Predict
+[ypred,yCI,DF] = predict(lme_adnivs_mci,Dummy_Patient);
+% Plot
+boundedline(Dummy_Patient.TimeFromBaseliney, ypred, [ypred-yCI(:,1) yCI(:,2)-ypred],'alpha','b')
+
+% Set AD-LB-
+Dummy_Patient(:,'Group') = {'AD-LB-'};
+% Predict
+[ypred,yCI,DF] = predict(lme_adnivs_mci,Dummy_Patient);
+% Plot
+boundedline(Dummy_Patient.TimeFromBaseliney, ypred, [ypred-yCI(:,1) yCI(:,2)-ypred],'alpha','m')
 
 ylabel('D(MEM-EF)')
 xlabel('Time from baseline (y)')
-
 

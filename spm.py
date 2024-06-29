@@ -1,6 +1,9 @@
 import os
 import re
 import shutil
+import subprocess
+from concurrent.futures import ThreadPoolExecutor
+from itertools import repeat
 from os.path import exists, join
 from typing import Tuple
 
@@ -17,61 +20,83 @@ class SPM:
 
     def __init__(
             self,
-            spm_path="/home/jsilva/software/cat12_standalone",
-            mcr_path="/home/jsilva/software/MATLAB_MCR/v93",
+            matlab_cmd = '/Applications/MATLAB_R2023b.app/bin/matlab',
+            spm_path = '/Users/jsilva/software/spm12'
             ):
+
+        anapyze_dir = os.path.dirname(os.path.abspath(__file__))
+        self.template_dir = join(anapyze_dir, 'templates')
+
+        self.matlab_cmd = matlab_cmd
         self.spm_path = spm_path
-        self.mcr_path = mcr_path
+        self.default_bounding_box = [-84, -120, -72, 84, 84, 96]  # CAT12 Default
 
-        if not exists(self.spm_path):
-            raise FileNotFoundError(f"{self.spm_path} is not found.")
-
-        if not exists(self.spm_path):
-            raise FileNotFoundError(f"{self.mcr_path} is not found.")
-
-        self.spm_run = "%s/run_spm12.sh %s batch" % (self.spm_path, self.mcr_path)
-
-    def run_mfile(self, mfile: str) -> None:
-        """Runs an SPM analysis (.m) using spm standalone"""
-        os.system("%s %s" % (self.spm_run, mfile))
-
-    def coregister(self, reference_image: str, source_image: str) -> str:
+    def coregister(
+            self,
+            reference_image: str,
+            source_image: str,
+            other_images: list[str] = False,
+            wrap = '0 0 0',
+            prefix = 'r'
+            ) -> str:
         """
         Runs a co-register using spm standalone
-        :param reference_image: Input reference image (tipycally MRI)
-        :param source_image: Input source image (tipycally PET)
+        :param reference_image: Input reference image (typically MRI)
+        :param source_image: Input source image (typically PET)
+        :param other_images: List of other images to co-register (optional)
+        :param wrap: Wrapping options. '0 1 0' wraps in y, '1 1 1' wraps the three axes
+        :param prefix: Prefix for the output image
         :return: Path to the co-registered image
         """
-        source_img_path, source_img_name = os.path.split(source_image)
+        template = join(self.template_dir, "coregister_template.m")
 
+        source_img_path, source_img_name = os.path.split(source_image)
         mfile_name: str = join(source_img_path, "coregister.m")
 
-        design_type: str = 'matlabbatch{1}.spm.spatial.coreg.estwrite.'
+        with open(template) as f:
+            text = f.read()
+        f.close()
 
-        new_spm = open(mfile_name, "w")
+        text = text.replace('SPM_PATH', self.spm_path)
+        text = text.replace('REFERENCE_IMAGE', reference_image)
+        text = text.replace('SOURCE_IMAGE', source_image)
 
-        new_spm.write(design_type + "ref = {'" + reference_image + ",1'};\n")
-        new_spm.write(design_type + "source = {'" + source_image + ",1'};\n")
-        new_spm.write(design_type + "other = {''};\n")
-        new_spm.write(design_type + "eoptions.cost_fun = 'nmi';\n")
-        new_spm.write(design_type + "eoptions.sep = [4 2];\n")
-        new_spm.write(
-                design_type
-                + "eoptions.tol = [0.02 0.02 0.02 0.001 0.001 0.001 0.01 0.01 0.01 0.001 0.001 0.001];\n"
-                )
-        new_spm.write(design_type + "eoptions.fwhm = [7 7]\n;")
-        new_spm.write(design_type + "roptions.interp = 4;\n")
-        new_spm.write(design_type + "roptions.wrap = [0 0 0];\n")
-        new_spm.write(design_type + "roptions.mask = 0;\n")
-        new_spm.write(design_type + "roptions.prefix = 'r';\n")
+        other_images_block = "''"
+        if other_images:
+            other_images_block = '\n'
+            for i in other_images:
+                other_images_block += "'" + i + ",1'\n"
 
-        new_spm.close()
+        text = text.replace('OTHER_IMAGES', other_images_block)
+        text = text.replace('WRAP_XYZ', wrap)
+        text = text.replace('PREFIX', prefix)
 
-        self.run_mfile(mfile_name)
+        with open(mfile_name, 'w') as f:
+            f.write(text)
+        f.close()
 
-        output = os.path.join(source_img_path[0], "r" + source_img_name[1])
+        command = f"{self.matlab_cmd} -nosplash -sd {source_img_path} -batch coregister"
+        result = subprocess.run(command, shell = True, capture_output = True, text = True)
 
+        if len(result.stderr) == 0:
+            print(f"{source_image} coregistered!")
+        else:
+            raise Exception(result.stderr)
+
+        output: str = os.path.join(source_img_path, prefix + source_img_name)
         return output
+
+    def coregister_parallelization(
+            self,
+            reference_images: list[str],
+            source_images: list[str],
+            wrap: str = '0 0 0',
+            prefix: str = 'r',
+            n_parallel: int = 8
+            ) -> None:
+
+        with ThreadPoolExecutor(max_workers = n_parallel) as executor:
+            executor.map(self.coregister, reference_images, source_images, repeat(False), repeat(wrap), repeat(prefix))
 
     def old_normalize(
             self,
@@ -79,69 +104,89 @@ class SPM:
             template_image: str,
             images_to_write: list[str] = False,
             bb: list[int] = False,
-            write_vox_size: str = "[1 1 1]",
-            wrapping=True,
-            interpolation: int = 4,
+            write_vox_size: float = 1.0,
+            wrapping: str = '0 0 0',
+            interpolation: str = 'splines',
+            prefix: str = 'w'
             ) -> Tuple[str, str]:
 
+        template = join(self.template_dir, "old_normalize_template.m")
+
         if not bb:
-            bb = [-84, -102, -84, 84, 102, 84]
+            bb = self.default_bounding_box
+
+        if interpolation == 'nearest':
+            interp_val = 0
+        elif interpolation == 'trilinear':
+            interp_val = 1
+        else:
+            interp_val = 4  # 4TH DEGREE SPLINES
 
         source_img_path, source_img_name = os.path.split(image_to_norm)
-        # Set the output file name
-        mfile_name = join(source_img_path, "normalize.m")
+        mfile_name = join(source_img_path, "old_normalize.m")
 
-        design_type = "matlabbatch{1}.spm.tools.oldnorm.estwrite."
+        with open(template) as f:
+            text = f.read()
+        f.close()
 
-        if not images_to_write:
+        text = text.replace('SPM_PATH', self.spm_path)
+        text = text.replace('TEMPLATE', template_image)
+        text = text.replace('SOURCE_IMAGE', image_to_norm)
+        text = text.replace('WRAP_XYZ', wrapping)
+        text = text.replace('PREFIX', prefix)
+        text = text.replace('INTERPOLATION', str(interp_val))
+        text = text.replace('VOXELSIZE', str(write_vox_size))
+
+        resample_images_block = '\n'
+        if images_to_write:
+            images_to_write.append(image_to_norm)
+        else:
             images_to_write = [image_to_norm]
 
-        new_spm = open(mfile_name, "w")
+        for i in images_to_write:
+            resample_images_block += "'" + i + ",1'\n"
 
-        new_spm.write(
-                design_type + "subj.source = {'" + image_to_norm + ",1'};\n"
-                + design_type + "subj.wtsrc = '';" + "\n"
-                + design_type + "subj.resample = {"
-                )
+        bb_block = (str(bb[0]) + " " + str(bb[1]) + " " + str(bb[2]) + "\n"
+                    + str(bb[3]) + " " + str(bb[4]) + " " + str(bb[5]))
 
-        for image in images_to_write:
-            new_spm.write("'" + image + ",1'" + "\n")
+        text = text.replace('RESAMPLE_IMAGES', resample_images_block)
+        text = text.replace('BOUNDING_BOX', bb_block)
 
-        new_spm.write("};" + "\n")
+        with open(mfile_name, 'w') as f:
+            f.write(text)
+        f.close()
 
-        new_spm.write(
-                design_type
-                + "eoptions.template = {'" + template_image + ",1'};\n"
-                + design_type + "eoptions.weight = '';\n"
-                + design_type + "eoptions.smosrc = 8;\n"
-                + design_type + "eoptions.smoref = 3;\n"
-                + design_type + "eoptions.regtype ='mni';\n"
-                + design_type + "eoptions.cutoff = 15;\n"
-                + design_type + "eoptions.nits = 16;\n"
-                + design_type + "eoptions.reg = 1;\n"
-                + design_type + "roptions.preserve = 0;\n"
-                + design_type + "roptions.bb =["
-                + str(bb[0]) + " " + str(bb[1]) + " " + str(bb[2]) + "\n"
-                + str(bb[3]) + " " + str(bb[4]) + " " + str(bb[5]) + "];\n"
-                + design_type + "roptions.vox =" + write_vox_size + ";\n"
-                + design_type + "roptions.interp =" + str(interpolation) + ";\n"
-                )
+        command = f"{self.matlab_cmd} -nosplash -sd {source_img_path} -batch old_normalize"
+        result = subprocess.run(command, shell = True, capture_output = True, text = True)
 
-        if wrapping:
-            new_spm.write(design_type + "roptions.wrap = [1 1 1];" + "\n")
+        if len(result.stderr) == 0:
+            print(f"{image_to_norm} normalized!")
         else:
-            new_spm.write(design_type + "roptions.wrap = [0 0 0];" + "\n")
+            raise Exception(result.stderr)
 
-        new_spm.write(design_type + "roptions.prefix ='w';\n")
-        new_spm.close()
-
-        self.run_mfile(mfile_name)
-
-        output = os.path.join(source_img_path + "w" + source_img_name)
+        output = os.path.join(source_img_path + prefix + source_img_name)
 
         transformation_matrix = image_to_norm[0:-4] + "_sn.mat"
 
         return output, transformation_matrix
+
+    def old_normalize_parallelization(
+            self,
+            images_to_norm: list[str],
+            template: str,
+            bb: list[int] = False,
+            write_vox_size: float = 1.0,
+            wrapping: str = '0 0 0',
+            interpolation: str = 'splines',
+            prefix: str = 'w',
+            n_parallel: int = 8
+            ) -> None:
+
+        with ThreadPoolExecutor(max_workers = n_parallel) as executor:
+            executor.map(
+                    self.old_normalize, images_to_norm, repeat(template), repeat(False), repeat(bb),
+                    repeat(write_vox_size), repeat(wrapping), repeat(interpolation), repeat(prefix)
+                    )
 
     def old_deformations(self, def_matrix: str, base_image: str, images_to_deform: list[str], interpolation: int) \
             -> list[str]:
@@ -189,74 +234,73 @@ class SPM:
     def new_normalize(
             self,
             image_to_norm: str,
-            tpm: str,
             images_to_write: list[str] = False,
             bb: list[int] = False,
             write_vox_size: str = "[1 1 1]",
-            interpolation: int = 4, ) \
-            -> Tuple[list[str], str]:
+            interpolation: str = 'splines',
+            prefix: str = 'w'
+            ) -> Tuple[str, str]:
+
+        template = join(self.template_dir, "new_normalize_template.m")
 
         if not bb:
-            bb = [-84, -102, -84, 84, 102, 84]
+            bb = self.default_bounding_box
+
+        if interpolation == 'nearest':
+            interp_val = 0
+        elif interpolation == 'trilinear':
+            interp_val = 1
+        else:
+            interp_val = 4  # 4TH DEGREE SPLINES
 
         source_img_path, source_img_name = os.path.split(image_to_norm)
-        # Set the output file name
-        mfile_name = join(source_img_path, "normalize.m")
+        mfile_name = join(source_img_path, "new_normalize.m")
 
-        design_type = "matlabbatch{1}.spm.spatial.normalise.estwrite."
+        with open(template) as f:
+            text = f.read()
+        f.close()
 
-        if not images_to_write:
+        text = text.replace('SPM_PATH', self.spm_path)
+        text = text.replace('IMAGE_TO_NORM', image_to_norm)
+        text = text.replace('PREFIX', prefix)
+        text = text.replace('INTERPOLATION', str(interp_val))
+        text = text.replace('VOXELSIZE', str(write_vox_size))
+
+        resample_images_block = '\n'
+        if images_to_write:
+            images_to_write.append(image_to_norm)
+        else:
             images_to_write = [image_to_norm]
 
-        new_spm = open(mfile_name, "w")
+        for i in images_to_write:
+            resample_images_block += "'" + i + ",1'\n"
 
-        new_spm.write(
-                design_type + "subj.vol = {'" + image_to_norm + ",1'};\n"
-                + design_type + "subj.resample = {\n"
-                )
+        bb_block = (str(bb[0]) + " " + str(bb[1]) + " " + str(bb[2]) + "\n"
+                    + str(bb[3]) + " " + str(bb[4]) + " " + str(bb[5]))
 
-        for image in images_to_write:
-            new_spm.write("'" + image + ",1'" + "\n")
-        new_spm.write("};" + "\n")
+        text = text.replace('RESAMPLE_IMAGES', resample_images_block)
+        text = text.replace('BOUNDING_BOX', bb_block)
 
-        new_spm.write(
-                design_type + "eoptions.biasreg = 0.01;\n"
-                + design_type + "eoptions.biasfwhm = 60;\n"
-                + design_type + "eoptions.tpm = {'" + tpm + "'};\n"
-                + design_type + "eoptions.affreg = 'mni';\n"
-                + design_type + "eoptions.reg = [0 0.001 0.5 0.05 0.2];\n"
-                + design_type + "eoptions.fwhm = 0;\n"
-                + design_type + "eoptions.samp = 3;\n"
-                + design_type + "woptions.bb = ["
-                + str(bb[0]) + " " + str(bb[1]) + " " + str(bb[2]) + "\n"
-                + str(bb[3]) + " " + str(bb[4]) + " " + str(bb[5]) + "];\n"
-                + design_type + "woptions.vox = " + write_vox_size + ";\n"
-                + design_type + "woptions.interp = " + str(interpolation) + ";\n"
-                )
+        with open(mfile_name, 'w') as f:
+            f.write(text)
+        f.close()
 
-        new_spm.close()
+        command = f"{self.matlab_cmd} -nosplash -sd {source_img_path} -batch old_normalize"
+        result = subprocess.run(command, shell = True, capture_output = True, text = True)
 
-        self.run_mfile(mfile_name)
+        if len(result.stderr) == 0:
+            print(f"{image_to_norm} normalized!")
+        else:
+            raise Exception(result.stderr)
 
-        deformed_images = []
-
-        for j in images_to_write:
-            components = os.path.split(j)
-            output = os.path.join(components[0], "w" + components[1])
-            deformed_images.append(output)
-
-        components_tm = os.path.split(images_to_write[0])
-        matrix_name = "y_" + os.path.basename(image_to_norm)[0:-3] + "nii"
-        transformation_matrix = os.path.join(components_tm[0], matrix_name)
-
-        return deformed_images, transformation_matrix
+        output = os.path.join(source_img_path + prefix + source_img_name)
 
     def new_deformations(
             self,
             def_matrix: str,
             images_to_deform: list[str],
             interpolation: int,
-            prefix="w"
+            prefix = "w"
             ) \
             -> list[str]:
 
@@ -287,8 +331,6 @@ class SPM:
                 )
 
         new_spm.close()
-
-        self.run_mfile(mfile_name)
 
         deformed_images = []
 
@@ -328,66 +370,6 @@ class SPM:
         output = os.path.join(components[0], "w" + components[1])
 
         return output
-
-    def normalize_multiple_pets(
-            self,
-            dir_proc: str,
-            images_to_norm: str,
-            template_image: str,
-            bb=None,
-            write_vox_size="[1.5 1.5 1.5]",
-            wrapping=True,
-            interpolation=4,
-            prefix="w",
-            run=True,
-            ) -> None:
-
-        if bb is None:
-            bb = [-84, -120, -72, 84, 84, 96]
-
-        design_type = "matlabbatch{1}.spm.tools.oldnorm.estwrite."
-
-        mfile_name = join(dir_proc, "normalize.m")
-        new_spm = open(mfile_name, "w")
-
-        for i in range(len(images_to_norm)):
-            new_spm.write(
-                    design_type + "subj(" + str(i + 1) + ").source = {'" + images_to_norm[i] + ",1'};\n"
-                    + design_type + "subj(" + str(i + 1) + ").wtsrc = '';\n"
-                    + design_type + "subj(" + str(i + 1) + ").resample = {'" + images_to_norm[i] + ",1'};\n"
-                    )
-
-        new_spm.write(
-                design_type + "eoptions.template = {'" + template_image + ",1'};\n"
-                + design_type + "eoptions.weight = '';\n"
-                + design_type + "eoptions.smosrc = 8;\n"
-                + design_type + "eoptions.smoref = 3;\n"
-                + design_type + "eoptions.regtype = 'mni';\n"
-                + design_type + "eoptions.cutoff = 15;\n"
-                + design_type + "eoptions.nits = 16;\n"
-                + design_type + "eoptions.reg = 1;\n"
-                + design_type + "roptions.preserve = 0;\n"
-                + design_type + "roptions.bb =[" + str(bb[0]) + " " + str(bb[1]) + " " + str(bb[2]) + "\n"
-                + str(bb[3]) + " " + str(bb[4]) + " " + str(bb[5]) + "];\n"
-                + design_type + "roptions.vox =" + write_vox_size + ";\n"
-                + design_type + "roptions.interp =" + str(interpolation) + ";\n"
-                )
-
-        if wrapping:
-            new_spm.write(design_type + "roptions.wrap = [1 1 1];\n")
-        else:
-            new_spm.write(design_type + "roptions.wrap = [0 0 0];\n")
-
-        new_spm.write(design_type + "roptions.prefix ='" + prefix + "';\n")
-
-        new_spm.write("spm('defaults','fmri');\n")
-        new_spm.write("spm_jobman('initcfg');\n")
-        new_spm.write("spm_jobman('run',matlabbatch);\n")
-
-        new_spm.close()
-
-        if run:
-            self.run_mfile(mfile_name)
 
     def smooth_multiple_imgs(self, dir_proc: str, images_to_smooth: list[str], smoothing: list[int]) -> None:
 
@@ -444,7 +426,11 @@ class SPM:
                 mfile_model, save_dir, group1, group2, group1_ages, group2_ages, group1_tiv, group2_tiv, mask
                 )
 
-        self.run_mfile(mfile_model)
+        command = f"{self.matlab_cmd} -nosplash -sd {save_dir} -batch model"
+        result = subprocess.run(command, shell = True, capture_output = True, text = True)
+
+        print(result.stdout)
+        print(result.stderr)
 
         print("Estimating model....")
 
@@ -453,17 +439,24 @@ class SPM:
 
         self.create_mfile_estimate_model(mfile_estimate, spm_mat)
 
-        self.run_mfile(mfile_estimate)
+        command = f"{self.matlab_cmd} -nosplash -sd {save_dir} -batch estimate"
+        result = subprocess.run(command, shell = True, capture_output = True, text = True)
+
+        print(result.stdout)
+        print(result.stderr)
 
         print("Calculating results....")
 
         mfile_results = join(save_dir, "results.m")
         spm_mat = join(save_dir, "SPM.mat")
 
-        self.create_mfile_contrast(
-                mfile_results, spm_mat, contrast_name=contrast_name, contrast=contrast
-                )
-        self.run_mfile(mfile_results)
+        self.create_mfile_contrast(mfile_results, spm_mat, contrast_name = contrast_name, contrast = contrast)
+
+        command = f"{self.matlab_cmd} -nosplash -sd {save_dir} -batch results"
+        result = subprocess.run(command, shell = True, capture_output = True, text = True)
+
+        print(result.stdout)
+        print(result.stderr)
 
         print("Converting results to Cohens d....")
 
@@ -475,8 +468,7 @@ class SPM:
         print("Calculating thresholds for Cohens d (FDR corrected ....")
         Analysis.get_cohens_d_thresholds_fdr(out_t_values, len(group1), len(group2))
 
-    @staticmethod
-    def create_mfile_model(
+    def create_mfile_model(self,
             mfile_name: str,
             save_dir: str,
             group1: list[str],
@@ -488,9 +480,12 @@ class SPM:
             mask: str = False,
             ) -> None:
 
-        design_type = "matlabbatch{1}.spm.stats.factorial_design."
 
         new_spm = open(mfile_name, "w")
+
+        new_spm.write(f"addpath ('{self.spm_path}');\n\n")
+
+        design_type = "matlabbatch{1}.spm.stats.factorial_design."
 
         new_spm.write(
                 design_type + "dir = {'" + save_dir + "/'};\n"
@@ -549,38 +544,52 @@ class SPM:
                 + design_type + "masking.em = {'" + mask + ",1'};\n"
                 + design_type + "globalc.g_omit = 1;\n"
                 + design_type + "globalm.gmsca.gmsca_no = 1;\n"
-                + design_type + "globalm.glonorm = 1;\n"
+                + design_type + "globalm.glonorm = 1;\n\n"
                 )
+
+        new_spm.write("spm('defaults','fmri');\n")
+        new_spm.write("spm_jobman('initcfg');\n")
+        new_spm.write("spm_jobman('run',matlabbatch);\n")
 
         new_spm.close()
 
-    @staticmethod
-    def create_mfile_estimate_model(mfile_name: str, spm_mat: str) -> None:
+    def create_mfile_estimate_model(self, mfile_name: str, spm_mat: str) -> None:
+
+        new_spm = open(mfile_name, "w")
+
+        new_spm.write(f"addpath ('{self.spm_path}');\n\n")
 
         design_type = "matlabbatch{1}.spm.stats.fmri_est."
 
-        new_spm = open(mfile_name, "w")
-
         new_spm.write(design_type + "spmmat = {'" + spm_mat + "'};\n")
         new_spm.write(design_type + "write_residuals = 0;\n")
-        new_spm.write(design_type + "method.Classical = 1;\n")
+        new_spm.write(design_type + "method.Classical = 1;\n\n")
+
+        new_spm.write("spm('defaults','fmri');\n")
+        new_spm.write("spm_jobman('initcfg');\n")
+        new_spm.write("spm_jobman('run',matlabbatch);\n")
 
         new_spm.close()
 
-    @staticmethod
     def create_mfile_contrast(
-            mfile_name: str, spm_mat: str, contrast_name: str = "contrast", contrast: str = "[1 -1 0]"
+            self, mfile_name: str, spm_mat: str, contrast_name: str = "contrast", contrast: str = "[1 -1 0]"
             ) -> None:
 
-        design_type = "matlabbatch{1}.spm.stats.con."
-
         new_spm = open(mfile_name, "w")
+
+        new_spm.write(f"addpath ('{self.spm_path}');\n\n")
+
+        design_type = "matlabbatch{1}.spm.stats.con."
 
         new_spm.write(design_type + "spmmat = {'" + spm_mat + "'};\n")
         new_spm.write(design_type + "consess{1}.tcon.name = '" + contrast_name + "';\n")
         new_spm.write(design_type + "consess{1}.tcon.weights =" + contrast + ";\n")
         new_spm.write(design_type + "consess{1}.tcon.sessrep = 'none';\n")
-        new_spm.write(design_type + "delete = 0;\n")
+        new_spm.write(design_type + "delete = 0;\n\n")
+
+        new_spm.write("spm('defaults','fmri');\n")
+        new_spm.write("spm_jobman('initcfg');\n")
+        new_spm.write("spm_jobman('run',matlabbatch);\n")
 
         new_spm.close()
 
@@ -596,8 +605,8 @@ class CAT12:
 
     def __init__(
             self,
-            spm_path="/home/jsilva/software/cat12_standalone",
-            mcr_path="/home/jsilva/software/MATLAB_MCR/v93",
+            spm_path = "/home/jsilva/software/cat12_standalone",
+            mcr_path = "/home/jsilva/software/MATLAB_MCR/v93",
             ):
         self.spm_path = spm_path
         self.mcr_path = mcr_path
@@ -622,7 +631,7 @@ class CAT12:
             output_vox_size: float = 1.5,
             bounding_box: str = "cat12",
             surface_processing: int = 0,
-            run=False,
+            run = False,
             ) -> str:
         """
         This function creates a mfile to later run with MATLAB.
@@ -630,7 +639,8 @@ class CAT12:
         mfile: Destination of the created mfile
         images_to_seg = A list of all the images you want to segment (Nifti (.nii) of Analyze (.img)).
         template_tpm = Template image to normalize the images to (something like ... PATH_TO/spm12/tpm/TPM.nii)
-        template_volumes = Templete volumes image from CAT12 (something like ... PATH_TO/spm12/toolbox/cat12/template_volumes/Template_0_IXI555_MNI152_GS.nii)
+        template_volumes = Templete volumes image from CAT12 (something like ...
+        PATH_TO/spm12/toolbox/cat12/template_volumes/Template_0_IXI555_MNI152_GS.nii)
         rest of the parameters = Consult CAT12 segment
         """
 
@@ -813,16 +823,18 @@ class CAT12:
             output_vox_size: float = 1.5,
             bounding_box: str = "cat12",
             surface_processing: int = 0,
-            run=False,
+            run = False,
             ):
         """
         This function creates a mfile to later run with MATLAB.
         You can run it within spm.py stating run=True but multithreading is not available.
         mfile: Destination of the created mfile
-        images_to_seg = A list of all the images of all the subjects you want to segment (Nifti (.nii/.nii.gz) of Analyze (.img)).
+        images_to_seg = A list of all the images of all the subjects you want to segment (Nifti (.nii/.nii.gz) of
+        Analyze (.img)).
         images_to_seg should be provided as [[S1_image1,S1_image2,...],[S2_image1,S2_image2,....]
         template_tpm = Template image to normalize the images to (something like ... PATH_TO/spm12/tpm/TPM.nii)
-        template_volumes = Templete volumes image from CAT12 (something like ... PATH_TO/spm12/toolbox/cat12/template_volumes/Template_0_IXI555_MNI152_GS.nii)
+        template_volumes = Templete volumes image from CAT12 (something like ...
+        PATH_TO/spm12/toolbox/cat12/template_volumes/Template_0_IXI555_MNI152_GS.nii)
         rest of the parameters = Consult CAT12 segment
         """
 

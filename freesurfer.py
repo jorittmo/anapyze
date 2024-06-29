@@ -5,16 +5,7 @@ from os.path import exists, join
 
 class FreeSurfer:
     """
-    This class is used to run FreeSurfer on a cohort of patients.
-    It assumes that the data is organized as follows:
-        subject_dir
-        ├── pat_1
-        |   ├── T1_pat1.nii.gz
-        |   └── T2_pat2.nii.gz (optional for hippocampal subfield segmentation)
-        ├── pat_2
-        |   ├── T1_pat2.nii.gz
-        |   └── T2_pat2.nii.gz
-        ...
+    This class is a wrapper for some FreeSurfer functionality.
     """
 
     @staticmethod
@@ -43,6 +34,23 @@ class FreeSurfer:
             executor.map(process_patient, pats.items())
 
     # TODO : Similar function for SAMSEG
+
+    @staticmethod
+    def synthstrip_skull_striping(img_to_strip: str, out_: str = False, includes_csf = True):
+
+        if not out_:
+            out_path, out_name = os.path.split(img_to_strip)
+            out_: str = join(out_path, 'skull_strip_' + out_name)
+
+        csf_flag = ''
+        if not includes_csf:
+            csf_flag = '--no-csf'
+
+        if exists(img_to_strip):
+            os.system(f"mri_synthstrip -i {img_to_strip} -o {out_} {csf_flag}")
+
+        else:
+            raise FileExistsError("Input image does not exist")
 
     @staticmethod
     def check_freesurfer_env():

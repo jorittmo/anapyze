@@ -3,7 +3,7 @@
 
 import os
 import zipfile
-from os.path import join, exists
+from os.path import exists, join
 
 dir_db = 'D:/IBIS_DATA/SUJETOS'
 dir_ordered = 'D:/IBIS_DATA/Reorder_New'
@@ -19,7 +19,6 @@ for i in list_dirs:
 
         subj_dir = join(this_dir, j)
         dest_dir = join(dir_ordered, j)
-
 
         for root, dirs, i_files in os.walk(subj_dir):
 

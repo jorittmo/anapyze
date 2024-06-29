@@ -1,4 +1,5 @@
 import warnings
+
 warnings.filterwarnings("ignore")
 
 import os
@@ -21,8 +22,8 @@ Alternatively you can run it here stating run=False in the spm_proc.cat12seg_img
 
 dir_patients = r'D:/IBIS_DATA/Reorder_New'
 spm_path = r'C:\Users\jesus\Work\software\spm12'
-tpm = join(spm_path, 'tpm','TPM.nii')
-template_volumes = join(spm_path, r'toolbox\cat12\templates_MNI152NLin2009cAsym','Template_0_GS.nii')
+tpm = join(spm_path, 'tpm', 'TPM.nii')
+template_volumes = join(spm_path, r'toolbox\cat12\templates_MNI152NLin2009cAsym', 'Template_0_GS.nii')
 
 list_dirs = os.listdir(dir_patients)
 
@@ -30,8 +31,7 @@ images = []
 
 for i in list_dirs:
 
-    dir_subj = join(dir_patients,i)
-
+    dir_subj = join(dir_patients, i)
 
     files_ = os.listdir(dir_subj)
 
@@ -48,9 +48,9 @@ for i in list_dirs:
                     if not exists(cat12_dir):
                         os.makedirs(cat12_dir)
 
-                    rm_in = join(cat12_dir,'t1.nii')
+                    rm_in = join(cat12_dir, 't1.nii')
                     if not exists(rm_in):
-                        shutil.copy(t1_image,rm_in)
+                        shutil.copy(t1_image, rm_in)
 
                     check_cat_processing = [join(cat12_dir, 'report', 'catreport_t1.pdf'),
                                             join(cat12_dir, 'mri', 'mwp1t1.nii'),
@@ -66,4 +66,4 @@ for i in list_dirs:
                         images.append(rm_in)
 
 spm_proc = CAT12(spm_path)
-cat_12_proc = spm_proc.cat12seg_imgs(images, tpm, template_volumes, run=False)
+cat_12_proc = spm_proc.cat12seg_imgs(images, tpm, template_volumes, run = False)

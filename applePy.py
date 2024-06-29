@@ -22,7 +22,7 @@ class Format:
     """
 
     @staticmethod
-    def nii_hdr_convert(img_name: str, compress_out=True) -> str:
+    def nii_hdr_convert(img_name: str, compress_out = True) -> str:
         """
         This function converts an image from Nifti to Analyze or vice versa.
         Depending on your input, it will output the other format.
@@ -84,11 +84,11 @@ class Format:
         """
 
         # Create the output folder if it doesn't exist
-        os.makedirs(output_folder, exist_ok=True)
+        os.makedirs(output_folder, exist_ok = True)
 
         # Run dcm2niix command to convert DICOM to NIfTI
         command = f"dcm2niix -o {output_folder} -f {output_filename} {input_folder}"
-        subprocess.run(command, shell=True)
+        subprocess.run(command, shell = True)
 
 
 class Analysis:
@@ -121,7 +121,7 @@ class Analysis:
         for i in range(1, len(images)):
             img, img_data = Utils.load_nifti(images[i])
             img_data = img_data[:, :, :, np.newaxis]
-            data = np.append(data, img_data, axis=3)
+            data = np.append(data, img_data, axis = 3)
 
         for i in range(sample_data.shape[0]):
             for j in range(sample_data.shape[1]):
@@ -209,7 +209,7 @@ class Analysis:
         :param atlas_hdr: the name of the hdr file that contains the atlas image
         """
 
-        atlas_df = pd.read_csv(atlas_csv, sep=";")
+        atlas_df = pd.read_csv(atlas_csv, sep = ";")
         atlas_img, atlas_data = Utils.load_nifti(atlas_hdr)
 
         for indx_, row_ in atlas_df.iterrows():
@@ -269,7 +269,7 @@ class Analysis:
         :param corr: the type of correlation coefficient to calculate (pearson, spearman)
         """
 
-        mask_data: npt.NDArray = Utils.load_nifti(mask, only_data=True)
+        mask_data: npt.NDArray = Utils.load_nifti(mask, only_data = True)
 
         sample_img: nib.Nifti1Image | nib.AnalyzeImage
         sample_data: npt.NDArray
@@ -282,9 +282,9 @@ class Analysis:
 
         for image in images[1:]:
             img_data: npt.NDArray
-            img_data = Utils.load_nifti(image, only_data=True)
+            img_data = Utils.load_nifti(image, only_data = True)
             img_data = img_data[..., np.newaxis]
-            data = np.append(data, img_data, axis=3)
+            data = np.append(data, img_data, axis = 3)
 
         print("Data shape: ", data.shape)
         print("Mask shape: ", mask_data.shape)
@@ -347,7 +347,7 @@ class Analysis:
         for image in images[1:]:
             img, img_data = Utils.load_nifti(image)
             img_data = img_data[..., np.newaxis]
-            data = np.append(data, img_data, axis=3)
+            data = np.append(data, img_data, axis = 3)
 
         print("Data shape: ", data.shape)
         print("Mask shape: ", mask_data.shape)
@@ -367,7 +367,7 @@ class Analysis:
                         df["var2"] = pd.Series(scale)
                         df["cov"] = pd.Series(covariate)
 
-                        res = pg.partial_corr(data=df, x="var1", y="var2", covar="cov")
+                        res = pg.partial_corr(data = df, x = "var1", y = "var2", covar = "cov")
 
                         corr_r[i, j, k] = res.r
 
@@ -388,9 +388,9 @@ class Analysis:
         """
 
         # Load the two images + atlas using nibabel library
-        img_1_data: npt.NDArray = Utils.load_nifti(image_1, only_data=True)
-        img_2_data: npt.NDArray = Utils.load_nifti(image_2, only_data=True)
-        atlas_data: npt.NDArray = Utils.load_nifti(atlas, only_data=True)
+        img_1_data: npt.NDArray = Utils.load_nifti(image_1, only_data = True)
+        img_2_data: npt.NDArray = Utils.load_nifti(image_2, only_data = True)
+        atlas_data: npt.NDArray = Utils.load_nifti(atlas, only_data = True)
 
         # Get the unique values of the atlas, which correspond to the ROIs
         rois = np.unique(atlas_data)
@@ -428,8 +428,8 @@ class Analysis:
         """
 
         # Load Nifti images
-        img1_data = Utils.load_nifti(img1_path, only_data=True)
-        img2_data = Utils.load_nifti(img2_path, only_data=True)
+        img1_data = Utils.load_nifti(img1_path, only_data = True)
+        img2_data = Utils.load_nifti(img2_path, only_data = True)
 
         # Get image data as numpy arrays
 
@@ -473,7 +473,7 @@ class Analysis:
         :return: FDR-corrected Cohen's d threshold
         """
         # Load the NIFTI image
-        data = Utils.load_nifti(img_, only_data=True)
+        data = Utils.load_nifti(img_, only_data = True)
 
         # Flatten the data to get a 1D array of t-values
         t_values = data.flatten()
@@ -481,7 +481,7 @@ class Analysis:
         t_values = np.sort(t_values)
 
         df = n1 + n2 - 2
-        p_values = t.sf(abs(t_values), df=df)
+        p_values = t.sf(abs(t_values), df = df)
         indx = np.where(p_values < 0.05)
         thresholded = t_values[indx]
         thres = np.percentile(thresholded, 5)
@@ -525,7 +525,7 @@ class Preprocessing:
         fdg_data = fdg_data * (mean_template / mean_fdg)
 
         division = template_data[indx] / fdg_data[indx]
-        values, bins = np.histogram(division, 200, range=(0.5, 2))
+        values, bins = np.histogram(division, 200, range = (0.5, 2))
         amax = np.amax(values)
         indx = np.where(values == amax)
         norm_value = float(bins[indx][0])
@@ -544,7 +544,7 @@ class Preprocessing:
         :param ref_region: the path to the reference region image
         :return: the normalization value used to scale the input image
         """
-        pons_img = Utils.load_nifti(ref_region, only_data=True)
+        pons_img = Utils.load_nifti(ref_region, only_data = True)
 
         if len(pons_img.shape) == 4:
             pons_img = pons_img[:, :, :, 0]
@@ -571,7 +571,7 @@ class Preprocessing:
         :return: None
         """
 
-        nt_data = Utils.load_nifti(reference_nii, only_data=True)
+        nt_data = Utils.load_nifti(reference_nii, only_data = True)
         patient, pt_data = Utils.load_nifti(input_nii)
 
         # Stores the image data shape that will be used later
@@ -583,9 +583,9 @@ class Preprocessing:
 
         # get the set of unique pixel values and their corresponding indices and counts
         s_values, bin_idx, s_counts = np.unique(
-                pt_data_array, return_inverse=True, return_counts=True
+                pt_data_array, return_inverse = True, return_counts = True
                 )
-        t_values, t_counts = np.unique(nt_data_array, return_counts=True)
+        t_values, t_counts = np.unique(nt_data_array, return_counts = True)
 
         # take the cumsum of the counts and normalize by the number of pixels to
         # get the empirical cumulative distribution functions for the source and
@@ -618,7 +618,7 @@ class Preprocessing:
         :param alpha: the additive constant for the log transformation, defaults to 1
         :param beta: the power exponent for the log transformation, defaults to 3
         """
-        nt_data = Utils.load_nifti(reference_nii, only_data=True)
+        nt_data = Utils.load_nifti(reference_nii, only_data = True)
         patient, pt_data = Utils.load_nifti(input_nii)
 
         # Stores the image data shape that will be used later
@@ -630,9 +630,9 @@ class Preprocessing:
 
         # get the set of unique pixel values and their corresponding indices and counts
         s_values, bin_idx, s_counts = np.unique(
-                pt_data_array, return_inverse=True, return_counts=True
+                pt_data_array, return_inverse = True, return_counts = True
                 )
-        t_values, t_counts = np.unique(nt_data_array, return_counts=True)
+        t_values, t_counts = np.unique(nt_data_array, return_counts = True)
 
         s_counts = np.power(np.log10(s_counts + alpha), beta)
         t_counts = np.power(np.log10(t_counts + alpha), beta)
@@ -657,7 +657,7 @@ class Preprocessing:
 
     @staticmethod
     def estimate_fwhm_mizutani(
-            nifti: str, bin_size: int = 5, n_segs: int = 2, orientation="axial", plot=False
+            nifti: str, bin_size: int = 5, n_segs: int = 2, orientation = "axial", plot = False
             ) -> Tuple[float, float]:
         """
         This function estimates image xy resolution based in
@@ -722,10 +722,10 @@ class Preprocessing:
                     np.meshgrid(
                             np.fft.fftshift(np.fft.fftfreq(slice_2d.shape[0])),
                             np.fft.fftshift(np.fft.fftfreq(slice_2d.shape[1])),
-                            indexing="ij",
+                            indexing = "ij",
                             )
                     )
-            k_squared = np.sum(k_values ** 2, axis=0)
+            k_squared = np.sum(k_values ** 2, axis = 0)
 
             # Calculate the number of bins along each axis
             num_bins_x = slice_2d.shape[0] // bin_size
@@ -783,8 +783,8 @@ class Preprocessing:
 
             if i == volume.shape[2] // 3 and plot:
                 # Plot the Wilson plot with the fitted line overlaid
-                plt.scatter(k_squared_flat, log_square_norm_flat, s=1)
-                plt.plot(x_pred, y_pred, color="black", linewidth=1)
+                plt.scatter(k_squared_flat, log_square_norm_flat, s = 1)
+                plt.plot(x_pred, y_pred, color = "black", linewidth = 1)
                 plt.xlabel("|k|^2")
                 plt.ylabel("ln|F(k)|^2")
                 plt.title("Wilson plot with fitted line")
@@ -800,7 +800,7 @@ class Utils:
     """Small Utilities for imaging work"""
 
     @staticmethod
-    def load_nifti(img_path: str, only_data=False) -> (nib.Nifti1Image | nib.AnalyzeImage, npt.NDArray):
+    def load_nifti(img_path: str, only_data = False) -> (nib.Nifti1Image | nib.AnalyzeImage, npt.NDArray):
         """Gets image path, returns image object and data"""
         img: nib.Nifti1Image | nib.AnalyzeImage = nib.load(img_path)
         data: npt.NDArray = img.get_fdata()
@@ -841,7 +841,7 @@ class Utils:
 
         # Create a new NIfTI or Analyze image with the changed data type
         if isinstance(img, nib.nifti1.Nifti1Image):
-            new_img = nib.Nifti1Image(new_img_data, img.affine, header=img.header)
+            new_img = nib.Nifti1Image(new_img_data, img.affine, header = img.header)
         elif isinstance(img, nib.analyze.AnalyzeImage):
             header = img.header.copy()
             header.set_data_dtype(new_dtype)
@@ -877,18 +877,18 @@ class Utils:
 
         # Determine the order of interpolation based on the given method
         interpolation_methods = {
-                "nearest"  : 0,
-                "linear"   : 1,
-                "cubic"    : 3,
-                "quadratic": 4,
-                # Add more interpolation methods and their corresponding order values here
-                }
+            "nearest": 0,
+            "linear": 1,
+            "cubic": 3,
+            "quadratic": 4,
+            # Add more interpolation methods and their corresponding order values here
+            }
         order = interpolation_methods.get(
                 interpolation, 1
                 )  # Default to linear if method not recognized
 
         # Resample the image data using scipy's zoom function
-        resampled_img_data = zoom(img_data, zoom_factors, order=order)
+        resampled_img_data = zoom(img_data, zoom_factors, order = order)
 
         # Update the affine matrix to reflect the new voxel dimensions
         voxel_sizes = np.array(img.header.get_zooms()) * (
@@ -900,7 +900,7 @@ class Utils:
         # Create a new NIfTI or Analyze image with the resampled data and updated affine
         if isinstance(img, nib.nifti1.Nifti1Image):
             resampled_img = nib.Nifti1Image(
-                    resampled_img_data, new_affine, header=img.header
+                    resampled_img_data, new_affine, header = img.header
                     )
         elif isinstance(img, nib.analyze.AnalyzeImage):
             header = img.header.copy()
@@ -937,18 +937,18 @@ class Utils:
 
         # Determine the order of interpolation based on the given method
         interpolation_methods = {
-                "nearest"  : 0,
-                "linear"   : 1,
-                "cubic"    : 3,
-                "quadratic": 4,
-                # Add more interpolation methods and their corresponding order values here
-                }
+            "nearest": 0,
+            "linear": 1,
+            "cubic": 3,
+            "quadratic": 4,
+            # Add more interpolation methods and their corresponding order values here
+            }
         order = interpolation_methods.get(
                 interpolation, 1
                 )  # Default to linear if method not recognized
 
         # Resample the image data using scipy's zoom function
-        resampled_img_data = zoom(img_data, zoom_factors, order=order)
+        resampled_img_data = zoom(img_data, zoom_factors, order = order)
 
         # Update the affine matrix to reflect the new voxel sizes
         new_affine = img.affine.copy()
@@ -957,7 +957,7 @@ class Utils:
         # Create a new NIfTI or Analyze image with the resampled data and updated affine
         if isinstance(img, nib.nifti1.Nifti1Image):
             resampled_img = nib.Nifti1Image(
-                    resampled_img_data, new_affine, header=img.header
+                    resampled_img_data, new_affine, header = img.header
                     )
         elif isinstance(img, nib.analyze.AnalyzeImage):
             header = img.header.copy()
@@ -986,7 +986,7 @@ class Utils:
 
         # Create a new NIfTI or Analyze image with cleaned data
         if isinstance(img, nib.nifti1.Nifti1Image):
-            cleaned_img = nib.Nifti1Image(img_data, img.affine, header=img.header)
+            cleaned_img = nib.Nifti1Image(img_data, img.affine, header = img.header)
         elif isinstance(img, nib.analyze.AnalyzeImage):
             header = img.header.copy()
             cleaned_img = nib.analyze.AnalyzeImage(img_data, img.affine, header)

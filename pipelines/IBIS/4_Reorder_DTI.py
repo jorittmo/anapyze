@@ -1,8 +1,8 @@
-import os
-from os.path import join, exists
-from datetime import datetime
 import gzip
+import os
 import shutil
+from datetime import datetime
+from os.path import exists, join
 
 dir_patients = r'/Volumes/txusser_data/IBIS_DATA/Reorder_New/'
 
@@ -39,7 +39,7 @@ for i in list_dirs:
     for dti, dti_date in dti_dates.items():
 
         # Calcula la diferencia en días con cada cat12 y encuentra el mínimo
-        closest_mri = min(cat12_dates, key=lambda x: abs((cat12_dates[x] - dti_date).days))
+        closest_mri = min(cat12_dates, key = lambda x: abs((cat12_dates[x] - dti_date).days))
 
         dir_t1 = join(dir_subj, closest_mri, 'mri')
         dir_pasternak = join(dir_subj, dti, 'Pasternak')
@@ -75,7 +75,6 @@ for i in list_dirs:
 
                 os.remove(out_ants)
 
-
         img_to_deform = []
 
         for r_image in results_pasternak:
@@ -99,20 +98,21 @@ for i in list_dirs:
             new_spm = open(mfile_name, "w")
 
             new_spm.write(
-                design_type_comp + "def = {'" + def_matrix + "'};\n" +
-                design_type_out + "pull.fnames = {" + "\n")
+                    design_type_comp + "def = {'" + def_matrix + "'};\n" +
+                    design_type_out + "pull.fnames = {" + "\n"
+                    )
 
             for image in img_to_deform:
                 new_spm.write("'" + image + "'\n")
             new_spm.write("};\n")
 
             new_spm.write(
-                design_type_out + "pull.savedir.savesrc = 1;\n" +
-                design_type_out + "pull.interp =" + str(4) + ";\n" +
-                design_type_out + "pull.mask = 0;\n" +
-                design_type_out + "pull.fwhm = [0 0 0];\n" +
-                design_type_out + "pull.prefix ='" + 'w' + "';\n"
-            )
+                    design_type_out + "pull.savedir.savesrc = 1;\n" +
+                    design_type_out + "pull.interp =" + str(4) + ";\n" +
+                    design_type_out + "pull.mask = 0;\n" +
+                    design_type_out + "pull.fwhm = [0 0 0];\n" +
+                    design_type_out + "pull.prefix ='" + 'w' + "';\n"
+                    )
 
             new_spm.close()
 
@@ -168,20 +168,21 @@ for i in list_dirs:
             new_spm = open(mfile_name, "w")
 
             new_spm.write(
-                design_type_comp + "def = {'" + def_matrix + "'};\n" +
-                design_type_out + "pull.fnames = {" + "\n")
+                    design_type_comp + "def = {'" + def_matrix + "'};\n" +
+                    design_type_out + "pull.fnames = {" + "\n"
+                    )
 
             for image in img_to_deform:
                 new_spm.write("'" + image + "'\n")
             new_spm.write("};\n")
 
             new_spm.write(
-                design_type_out + "pull.savedir.savesrc = 1;\n" +
-                design_type_out + "pull.interp =" + str(4) + ";\n" +
-                design_type_out + "pull.mask = 0;\n" +
-                design_type_out + "pull.fwhm = [0 0 0];\n" +
-                design_type_out + "pull.prefix ='" + 'w' + "';\n"
-            )
+                    design_type_out + "pull.savedir.savesrc = 1;\n" +
+                    design_type_out + "pull.interp =" + str(4) + ";\n" +
+                    design_type_out + "pull.mask = 0;\n" +
+                    design_type_out + "pull.fwhm = [0 0 0];\n" +
+                    design_type_out + "pull.prefix ='" + 'w' + "';\n"
+                    )
 
             new_spm.close()
 

@@ -26,7 +26,7 @@ for i in list_dirs:
                 if not exists(pet_dir):
                     os.makedirs(pet_dir)
 
-                json_file = join(pet_in[0:-3]+'json')
+                json_file = join(pet_in[0:-3] + 'json')
                 with open(json_file, 'r') as file:
                     data = json.load(file)
 
