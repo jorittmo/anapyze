@@ -9,6 +9,7 @@ import nibabel as nib
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
+import pathlib
 import pingouin as pg
 import pwlf
 from scipy.fftpack import fftn, fftshift
@@ -95,6 +96,16 @@ class Analysis:
     """
     Basic utilities for image analysis (statistics, etc...)
     """
+
+    def __init__(self):
+
+        dir_ = pathlib.Path(__file__).parent.resolve()
+
+        self.atlas_dir = join(dir_, 'resources', 'atlas')
+
+        self.harvard_oxford_nii = join(self.atlas_dir, 'cortex_Harvard_Oxford_cat12_1.5mm.nii.gz')
+        self.harvard_oxford_csv = join(self.atlas_dir, 'Harvard_Oxford.csv')
+        self.harvard_oxford_adni = join(self.atlas_dir, 'Harvard_Oxford_179CN.csv')
 
     @staticmethod
     def create_mean_std_imgs(images: list[str], output_mean: str, output_std: str) -> None:
@@ -819,6 +830,8 @@ class Utils:
 
     @staticmethod
     def check_input_image_shape(img_data: npt.NDArray) -> npt.NDArray:
+
+        print(img_data.shape)
         if img_data.ndim != 3:
             img_data = img_data[:, :, :, 0]
 
