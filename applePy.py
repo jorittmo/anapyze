@@ -498,7 +498,7 @@ class Analysis:
         return cohens_thres
 
 
-class Preprocessing:
+class Harmonization:
     @staticmethod
     def normalize_histogram(input_image: str, template: str, mask: str, output: str) -> float:
         """Normalizes an image using the mode of an intensity histogram.

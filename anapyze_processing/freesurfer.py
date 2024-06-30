@@ -9,6 +9,18 @@ class FreeSurfer:
     """
 
     @staticmethod
+    def recon_all(t1_nii, t2_nii=False) -> None:
+
+        #directory containing the t1_nii file
+        pat_dir = os.path.split(t1_nii)[0]
+
+        if exists(t1_nii):
+            os.system(f"recon-all -sd {pat_dir} -i {t1_nii} -s FS_out -all\n")
+        if exists(t1_nii) and exists(t2_nii):
+            # TODO : hippocampal subfields
+            pass
+
+    @staticmethod
     def recon_all_cohort_fs(cohort_dir, pats: dict, n_parallel: int = 2) -> None:
         """
         Runs recon-all in parallel for a cohort of subjects.
@@ -32,6 +44,7 @@ class FreeSurfer:
 
         with ThreadPoolExecutor(max_workers = n_parallel) as executor:
             executor.map(process_patient, pats.items())
+
 
     # TODO : Similar function for SAMSEG
 
