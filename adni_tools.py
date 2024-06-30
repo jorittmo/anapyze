@@ -1,8 +1,11 @@
 import pathlib
 import os
-from os.path import join,exists
+from os.path import join, exists
 import numpy as np
 import pandas as pd
+from datetime import datetime
+from dateutil.relativedelta import relativedelta
+
 
 class ADNI(object):
 
@@ -32,7 +35,7 @@ class ADNI(object):
         self.wmh_df = pd.read_csv(wmh_csv)
 
     @staticmethod
-    def reorder_adni_data(input_dir, output_dir, dcm2niix=r'dcm2niix'):
+    def reorder_adni_data(input_dir, output_dir, dcm2niix = r'dcm2niix'):
 
         input_subjects = os.listdir(input_dir)
 
@@ -54,6 +57,124 @@ class ADNI(object):
 
                         command = dcm2niix + '-o ' + output_ + ' -f fdg ' + input
                         os.system(command)
+
+    @staticmethod
+    def filter_mri_csv(mri_csv, output_csv):
+        mri_df = pd.read_csv(mri_csv)
+
+        filtered_mri_df = pd.DataFrame(
+                columns = ['SUBJECT_ID', 'MRI_AGE', 'MRI_ID', 'DESCRIPTION']
+                )
+
+        out = 'test.csv'
+
+        subjects = mri_df['Subject ID'].unique()
+        for subject in subjects:
+
+            subject_df = mri_df.loc[mri_df['Subject ID'] == subject]
+
+            ages = subject_df['Age'].unique()
+
+            for age in ages:
+
+                print(subject, age)
+
+                age_df = subject_df.loc[subject_df['Age'] == age]
+
+                age_df = age_df.loc[age_df['Description'] != '3 Plane Localizer']
+                age_df = age_df.loc[age_df['Description'] != '3_Plane_Localizer']
+                age_df = age_df.loc[age_df['Description'] != 'localizer']
+                age_df = age_df.loc[age_df['Description'] != 'Calibration Scan']
+                age_df = age_df.loc[age_df['Description'] != 'Field Mapping']
+                age_df = age_df.loc[age_df['Description'] != 'Axial Field Mapping']
+                age_df = age_df.loc[age_df['Description'] != 'B1-Calibration PA']
+                age_df = age_df.loc[age_df['Description'] != 'B1-Calibration Body']
+
+                if age_df.empty:
+                    print('No MRI for subject %s' % subject)
+                    continue
+                else:
+                    if len(age_df) == 1:
+                        id = age_df['Image ID'].values[0]
+                        description = age_df['Description'].values[0]
+                        new_row = pd.DataFrame(
+                                [{'SUBJECT_ID': subject, 'MRI_AGE': age, 'MRI_ID': id, 'DESCRIPTION': description}],
+                                columns = ['SUBJECT_ID', 'MRI_AGE', 'MRI_ID', 'DESCRIPTION']
+                                )
+                        filtered_mri_df = pd.concat([filtered_mri_df, new_row], ignore_index = True)
+
+                    else:
+                        descriptions = []
+                        for mri_index, mri_row in age_df.iterrows():
+                            this_image_id = mri_row['Image ID']
+                            this_description = mri_row['Description']
+
+                            print('%s: %s' % (this_image_id, this_description))
+
+                            descriptions.append(this_description)
+
+                        accepted_descriptions = set(
+                                ['Accelerated SAG IR-SPGR', 'MPRAGE SENSE2', 'MPRAGE GRAPPA2',
+                                 'MPRAGE_GRAPPA2', 'Accelerated Sag IR-FSPGR', 'IR-SPGR w/acceleration'
+                                                                               'Accelerated Sagittal MPRAGE',
+                                 'Accelerated SAG IR-FSPGR',
+                                 'Accelerated Sag IR-SPGR', 'Accelerated Sagittal MPRAGE',
+                                 'MPRAGE SENSE2 SENSE', 'MPRAGE SENSE', 'Sagittal 3D Accelerated MPRAGE',
+                                 'Sagittal 3D Accelerated 0 angle MPRAGE', 'ACCELERATED SAG IR-SPGR',
+                                 'Accelerated Sagittal IR-FSPGR', 'IR-SPGR w/acceleration',
+                                 'Accelerated Sagittal MPRAGE Phase A-P', 'Sag Accel IR-FSPGR',
+                                 'Accelerated_Sag_IR-FSPGR', 'MPRAGE_GRAPPA2          straight no angle',
+                                 'MPRAGE SENS', 'MPR; GradWarp; B1 Correction; N3; Scaled <- MP-RAGE',
+                                 'MPRAGE REPEAT', 'SAG IR-FSPGR-Repeat', 'IR-FSPGR-Repeat',
+                                 'IR-FSPGR REPEAT', 'MPRAGE_ASO_repeat', 'MPRAGE_ Sag  - NO ANGLE=',
+                                 'MPRAGE Repeat', 'MP-RAGE REPEAT', 'MP RAGE SAGITTAL REPEAT',
+                                 'MP-RAGE-REPEAT', 'MP-RAGE-Repeat', 'MP-RAGE repeat',
+                                 'MP-RAGE', 'Sag IR-FSPGR Repeat', 'MP RAGE REPEAT',
+                                 'ADNI       MPRAGE', 'MPRAGE', 'ASO-MPRAGE', 'MPRAGE AUTOSHIM ON',
+                                 'Sag IR-SPGR', 'MPRAGE SAGITTAL', 'MPRAGE ASO', 'ADNI SH    MPRAGE ASO',
+                                 'MPRAGE SAG', 'ADNI-R11   MPRAGE-REPEA', 'ADNI-R11   MPRAGE',
+                                 'ADNI-R11-ASASO-MPRAGE', 'ADNI-R11-ASASO-MPRAGE(2',
+                                 'ADNI       MPRAGEASOREP', 'ADNI       MPRAGE ASO', 'MPRAGEREPEATASO',
+                                 'MPRAGEASO', 'REPEAT SAG 3D MPRAGE', 'SAG 3D MPRAGE',
+                                 'REPEAT SAG 3D MP RAGE NO ANGLE', 'SAG 3D MPRAGE NO ANGLE',
+                                 'SAG MPRAGE GRAPPA2 NO ANGLE', 'SAG MPRAGE NO ANGLE',
+                                 'SAG MP-RAGE REPEAT', 'SAG MP-RAGE'
+                                                       'MT1; GradWarp; N3m <- IR-FSPGR', ]
+                                )
+
+                        descriptions = set(descriptions)
+                        is_accept = list(accepted_descriptions.intersection(descriptions))
+
+                        if not is_accept:
+                            # Ask the user to choose one
+                            print('Please choose one:')
+                            mri_image_id = input('Enter the image ID for subject %s: ' % subject)
+                            print('You entered: %s' % mri_image_id)
+
+                            selected = age_df.loc[age_df['Image ID'] == int(mri_image_id)]
+                            id = selected['Image ID'].values[0]
+                            description = selected['Description'].values[0]
+                            new_row = pd.DataFrame(
+                                    [{'SUBJECT_ID': subject, 'MRI_AGE': age, 'MRI_ID': id, 'DESCRIPTION': description}],
+                                    columns = ['SUBJECT_ID', 'MRI_AGE', 'MRI_ID', 'DESCRIPTION']
+                                    )
+                            filtered_mri_df = pd.concat([filtered_mri_df, new_row], ignore_index = True)
+
+                        else:
+                            selected = age_df.loc[age_df['Description'] == is_accept[0]]
+                            print(selected)
+                            id = selected['Image ID'].values[0]
+                            description = selected['Description'].values[0]
+                            new_row = pd.DataFrame(
+                                    [{'SUBJECT_ID': subject, 'MRI_AGE': age, 'MRI_ID': id, 'DESCRIPTION': description}],
+                                    columns = ['SUBJECT_ID', 'MRI_AGE', 'MRI_ID', 'DESCRIPTION']
+                                    )
+                            filtered_mri_df = pd.concat([filtered_mri_df, new_row], ignore_index = True)
+
+                        print('\n')
+
+        filtered_mri_df.to_csv(out, index = False)
+
     def is_subject_amyloid_PET_positive(self, subject_id = False, rid = False, date = 'baseline'):
 
         if subject_id:
@@ -194,79 +315,76 @@ class ADNI(object):
         filtered_mmse = self.mmse_df[self.mmse_df.RID == rid]
         filtered_mmse['USERDATE'] = pd.to_datetime(filtered_mmse.USERDATE)
 
-        if date == 'baseline':
-            ordered = filtered_mmse.sort_values(by = ['USERDATE'], ascending = True)
-        elif date == 'last':
-            ordered = filtered_mmse.sort_values(by = ['USERDATE'], ascending = False)
-        else:
-            raise Exception('Not yet implemented')
+        ordered = filtered_mmse.sort_values(by = ['USERDATE'], ascending = True)
 
         if not ordered.empty:
-            mmse = ordered['MMSCORE'].values[0]
+
+            if date == 'baseline':
+                mmse = ordered['MMSCORE'].values[0]
+            elif date == 'last':
+                mmse = ordered['MMSCORE'].values[-1]
+            else:
+                date = datetime.strptime(date, '%Y-%m-%d')
+                diff_time_mmse = 1000
+
+                for mmse_index, mmse_row in ordered.iterrows():
+
+                    date_mmse = mmse_row["USERDATE"]
+                    mmse_ = mmse_row["MMSCORE"]
+
+                    diff_time_ = (
+                            relativedelta(date_mmse, date).years
+                            + relativedelta(date_mmse, date).months / 12
+                            + relativedelta(date_mmse, date).days / 365
+                    )
+
+                    if np.abs(diff_time_) < diff_time_mmse:
+                        diff_time_mmse = np.abs(diff_time_)
+                        mmse = mmse_
 
         filtered_composite = self.composites_df[self.composites_df.RID == rid]
         filtered_composite['EXAMDATE'] = pd.to_datetime(filtered_composite.EXAMDATE)
 
-        if date == 'baseline':
-            ordered = filtered_composite.sort_values(by = ['EXAMDATE'], ascending = True)
-        elif date == 'last':
-            ordered = filtered_composite.sort_values(by = ['EXAMDATE'], ascending = False)
-        else:
-            raise Exception('Not yet implemented')
+        ordered = filtered_composite.sort_values(by = ['EXAMDATE'], ascending = True)
 
         if not ordered.empty:
 
-            if not ordered['ADNI_MEM'].dropna().empty:
+            if date == 'baseline':
                 adni_mem = ordered['ADNI_MEM'].dropna().values[0]
-
-            if not ordered['ADNI_EF'].dropna().empty:
                 adni_exec = ordered['ADNI_EF'].dropna().values[0]
-
-            if not ordered['ADNI_LAN'].dropna().empty:
                 adni_lan = ordered['ADNI_LAN'].dropna().values[0]
-
-            if not ordered['ADNI_VS'].dropna().empty:
                 adni_vs = ordered['ADNI_VS'].dropna().values[0]
+            elif date == 'last':
+                adni_mem = ordered['ADNI_MEM'].dropna().values[-1]
+                adni_exec = ordered['ADNI_EF'].dropna().values[-1]
+                adni_lan = ordered['ADNI_LAN'].dropna().values[-1]
+                adni_vs = ordered['ADNI_VS'].dropna().values[-1]
+            else:
+                date = datetime.strptime(date, '%Y-%m-%d')
+                diff_time_composite = 1000
+
+                for composite_index, composite_row in ordered.iterrows():
+
+                    date_composite = composite_row["EXAMDATE"]
+                    adni_mem_ = composite_row["ADNI_MEM"]
+                    adni_exec_ = composite_row["ADNI_EF"]
+                    adni_lan_ = composite_row["ADNI_LAN"]
+                    adni_vs_ = composite_row["ADNI_VS"]
+
+                    diff_time_ = (
+                            relativedelta(date_composite, date).years
+                            + relativedelta(date_composite, date).months / 12
+                            + relativedelta(date_composite, date).days / 365
+                    )
+
+                    if np.abs(diff_time_) < diff_time_composite:
+                        diff_time_composite = np.abs(diff_time_)
+                        adni_mem = adni_mem_
+                        adni_exec = adni_exec_
+                        adni_lan = adni_lan_
+                        adni_vs = adni_vs_
 
         return mmse, adni_mem, adni_exec, adni_lan, adni_vs
-
-    def get_mmse_closest_to_date(self, date, subject_id = False, rid = False):
-
-        from datetime import datetime
-        from dateutil.relativedelta import relativedelta
-
-        #convert string to datetime
-        date = datetime.strptime(date, '%Y-%m-%d')
-
-        if subject_id:
-            rid = int(subject_id[-4:])
-        elif not subject_id and not rid:
-            raise ValueError("Subject_ID or RID must be provided")
-
-        filtered_mmse = self.mmse_df[self.mmse_df.RID == rid]
-        filtered_mmse["USERDATE"] = pd.to_datetime(filtered_mmse.USERDATE)
-
-        diff_time_mmse = 1000
-        mmse = 30
-        date_out = '1900-01-01'
-
-        for mmse_index, mmse_row in filtered_mmse.iterrows():
-
-            date_mmse = mmse_row["USERDATE"]
-            mmse_ = mmse_row["MMSCORE"]
-
-            diff_time_ = (
-                    relativedelta(date_mmse, date).years
-                    + relativedelta(date_mmse, date).months / 12
-                    + relativedelta(date_mmse, date).days / 365
-            )
-
-            if np.abs(diff_time_) < diff_time_mmse:
-                diff_time_mmse = np.abs(diff_time_)
-                mmse = mmse_
-                date_out = date_mmse
-
-        return mmse, date_out
 
     def get_neuropsychological_battery(self, subject_id = False, rid = False, date = 'baseline'):
 
