@@ -94,10 +94,14 @@ class Format:
 
 class Analysis:
     """
-    Basic utilities for image analysis (statistics, etc...)
+        This class provides basic utilities for image analysis, including statistical analysis and image transformation.
+
     """
 
     def __init__(self):
+        """
+        Initializes the Analysis class with the necessary directories and file paths.
+        """
 
         dir_ = pathlib.Path(__file__).parent.resolve()
 
@@ -109,13 +113,13 @@ class Analysis:
 
     @staticmethod
     def create_mean_std_imgs(images: list[str], output_mean: str, output_std: str) -> None:
-        """This function creates the mean and standard deviation images for a list of images,
+        """
+        This function creates the mean and standard deviation images for a list of images,
         and saves them in nifti files.
 
         :param images: a list of strings (nifti files paths)
         :param output_mean: the name of the nifti file that will contain the mean image
         :param output_std: the name of the nifti file that will contain the standard deviation image
-
         """
 
         sample_nii = images[0]

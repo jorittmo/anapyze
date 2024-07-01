@@ -8,11 +8,19 @@ from dateutil.relativedelta import relativedelta
 
 
 class ADNI(object):
+    """
+    This class provides utilities for handling and processing ADNI data.
+    """
 
     def __init__(self):
+        """
+        Initializes the ADNI class with the necessary directories and file paths.
+        """
 
-        dir_ = pathlib.Path(__file__).parent.resolve()
-        self.adni_csv_dir = join(dir_, 'resources')
+        dir_repos = pathlib.Path(__file__).parents[1]
+        print(dir_repos)
+
+        self.adni_csv_dir = join(dir_repos, 'adni_resources', 'resources')
 
         amyloid_csv = join(self.adni_csv_dir, 'UCBERKELEY_AMY_6MM_13Sep2023.csv')
         csf_csv = join(self.adni_csv_dir, 'CSF.xlsx')
@@ -36,6 +44,13 @@ class ADNI(object):
 
     @staticmethod
     def reorder_adni_data(input_dir, output_dir, dcm2niix = r'dcm2niix'):
+        """
+        Reorders the ADNI data based on the input directory and output directory.
+
+        :param input_dir: The directory where the input data is located.
+        :param output_dir: The directory where the reordered data will be saved.
+        :param dcm2niix: The path to the dcm2niix tool.
+        """
 
         input_subjects = os.listdir(input_dir)
 
@@ -60,6 +75,12 @@ class ADNI(object):
 
     @staticmethod
     def filter_mri_csv(mri_csv, output_csv):
+        """
+        Filters the MRI CSV file and saves the result in a new CSV file.
+
+        :param mri_csv: The path to the MRI CSV file.
+        :param output_csv: The path to the output CSV file.
+        """
         mri_df = pd.read_csv(mri_csv)
 
         filtered_mri_df = pd.DataFrame(
@@ -176,6 +197,14 @@ class ADNI(object):
         filtered_mri_df.to_csv(out, index = False)
 
     def is_subject_amyloid_PET_positive(self, subject_id = False, rid = False, date = 'baseline'):
+        """
+        Checks if a subject is amyloid PET positive.
+
+        :param subject_id: The ID of the subject.
+        :param rid: The RID of the subject.
+        :param date: The date of the PET scan.
+        :return: The tracer, SUVR, amyloid status, and centiloids.
+        """
 
         if subject_id:
             rid = int(subject_id[-4:])
@@ -204,7 +233,14 @@ class ADNI(object):
             return None, None, None, None
 
     def get_csf_biomarkers(self, subject_id = False, rid = False, date = 'baseline'):
+        """
+        Gets the CSF biomarkers for a subject.
 
+        :param subject_id: The ID of the subject.
+        :param rid: The RID of the subject.
+        :param date: The date of the CSF biomarker measurement (The measurement closest to this date will be returned.
+        :return: The AB42, tau, ptau, asyn, and exam date.
+        """
         ab42 = None
         tau = None
         ptau = None
@@ -221,30 +257,72 @@ class ADNI(object):
 
         if not df_subj.empty:
 
-            if date == 'baseline':
-                ordered = df_subj.sort_values(by = ['EXAMDATE'], ascending = True)
-            elif date == 'last':
-                ordered = df_subj.sort_values(by = ['EXAMDATE'], ascending = False)
-            else:
-                raise Exception('Not yet implemented')
+            ordered = df_subj.sort_values(by = ['EXAMDATE'], ascending = True)
 
-            ab42 = ordered['ABETA42'].values[0]
-            tau = ordered['TAU'].values[0]
-            ptau = ordered['PTAU'].values[0]
+            if date == 'baseline':
+                ab42 = ordered['ABETA42'].values[0]
+                tau = ordered['TAU'].values[0]
+                ptau = ordered['PTAU'].values[0]
+
+            elif date == 'last':
+                ab42 = ordered['ABETA42'].values[-1]
+                tau = ordered['TAU'].values[-1]
+                ptau = ordered['PTAU'].values[-1]
+            else:
+                date = datetime.strptime(date, '%Y-%m-%d')
+                diff_time_csf = 1000
+
+                for csf_index, csf_row in ordered.iterrows():
+
+                    date_csf = ordered["EXAMDATE"]
+                    ab42_ = ordered["ABETA42"]
+                    tau_ = ordered["TAU"]
+                    ptau_ = ordered["PTAU"]
+
+                    diff_time_ = (
+                            relativedelta(date_csf, date).years
+                            + relativedelta(date_csf, date).months / 12
+                            + relativedelta(date_csf, date).days / 365
+                    )
+
+                    if np.abs(diff_time_) < diff_time_csf:
+                        diff_time_csf = np.abs(diff_time_)
+                        ab42 = ab42_
+                        tau = tau_
+                        ptau = ptau_
+                        exam_date = date_csf
 
         df_subj = self.asyn_csf_df.loc[self.asyn_csf_df['RID'] == rid]
 
         if not df_subj.empty:
 
-            if date == 'baseline':
-                ordered = df_subj.sort_values(by = ['EXAMDATE'], ascending = True)
-            elif date == 'last':
-                ordered = df_subj.sort_values(by = ['EXAMDATE'], ascending = False)
-            else:
-                raise Exception('Not yet implemented')
+            ordered = df_subj.sort_values(by = ['EXAMDATE'], ascending = True)
 
-            asyn_in = ordered['Result'].values[0]
-            exam_date = ordered['EXAMDATE'].values[0]
+            if date == 'baseline':
+                asyn_in = ordered['Result'].values[0]
+                exam_date = ordered['EXAMDATE'].values[0]
+            elif date == 'last':
+                asyn_in = ordered['Result'].values[-1]
+                exam_date = ordered['EXAMDATE'].values[-1]
+            else:
+                date = datetime.strptime(date, '%Y-%m-%d')
+                diff_time_csf = 1000
+
+                for csf_index, csf_row in ordered.iterrows():
+
+                    date_csf = ordered["EXAMDATE"]
+                    asyn_ = ordered["Result"]
+
+                    diff_time_ = (
+                            relativedelta(date_csf, date).years
+                            + relativedelta(date_csf, date).months / 12
+                            + relativedelta(date_csf, date).days / 365
+                    )
+
+                    if np.abs(diff_time_) < diff_time_mmse:
+                        diff_time_mmse = np.abs(diff_time_)
+                        asyn_in = asyn_
+
 
             if asyn_in == 'Not_Detected':
 
@@ -258,9 +336,19 @@ class ADNI(object):
 
                 asyn = 2
 
+            else:
+                asyn = None
+
         return ab42, tau, ptau, asyn, exam_date
 
     def get_genetics_data(self, subject_id = False, rid = False):
+        """
+        Gets the genetic data for a subject.
+
+        :param subject_id: The ID of the subject.
+        :param rid: The RID of the subject.
+        :return: The APOE, KCNMB2, TMEM106B, GRN, rs73069071, and ABCC9.
+        """
 
         apoe = None
         KCNMB2 = None
@@ -315,9 +403,9 @@ class ADNI(object):
         filtered_mmse = self.mmse_df[self.mmse_df.RID == rid]
         filtered_mmse['USERDATE'] = pd.to_datetime(filtered_mmse.USERDATE)
 
-        ordered = filtered_mmse.sort_values(by = ['USERDATE'], ascending = True)
+        if not filtered_mmse.empty:
 
-        if not ordered.empty:
+            ordered = filtered_mmse.sort_values(by = ['USERDATE'], ascending = True)
 
             if date == 'baseline':
                 mmse = ordered['MMSCORE'].values[0]
@@ -345,9 +433,9 @@ class ADNI(object):
         filtered_composite = self.composites_df[self.composites_df.RID == rid]
         filtered_composite['EXAMDATE'] = pd.to_datetime(filtered_composite.EXAMDATE)
 
-        ordered = filtered_composite.sort_values(by = ['EXAMDATE'], ascending = True)
+        if not filtered_composite.empty:
 
-        if not ordered.empty:
+            ordered = filtered_composite.sort_values(by = ['EXAMDATE'], ascending = True)
 
             if date == 'baseline':
                 adni_mem = ordered['ADNI_MEM'].dropna().values[0]
@@ -360,7 +448,7 @@ class ADNI(object):
                 adni_lan = ordered['ADNI_LAN'].dropna().values[-1]
                 adni_vs = ordered['ADNI_VS'].dropna().values[-1]
             else:
-                date = datetime.strptime(date, '%Y-%m-%d')
+                #date = datetime.strptime(date, '%Y-%m-%d')
                 diff_time_composite = 1000
 
                 for composite_index, composite_row in ordered.iterrows():
