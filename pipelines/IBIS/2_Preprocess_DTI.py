@@ -1,4 +1,5 @@
 import warnings
+
 warnings.filterwarnings("ignore")
 
 import os
@@ -59,12 +60,14 @@ for i in list_dirs:
                 # Check data 3D
                 data_ = nib.load(dti_image).get_fdata()
                 if len(data_.shape) != 4:
-                    print("Data shape:", data_.shape,
-                          ". Something is wrong with the shape of the data. Ignoring this image...")
+                    print(
+                        "Data shape:", data_.shape,
+                        ". Something is wrong with the shape of the data. Ignoring this image..."
+                        )
                     pass
 
                 else:
-                    print("Processing %s_b%s_%s" % (i,str(b_zero), date))
+                    print("Processing %s_b%s_%s" % (i, str(b_zero), date))
                     print("Data shape:", data_.shape)
                     dti_out = join(dti_dir, 'dti_eddy_denoised.nii.gz')
 
@@ -96,11 +99,13 @@ for i in list_dirs:
                     affine = dti_img.affine
 
                     print("Denoising....")
-                    denoised_arr = patch2self(dti_data, bvals, model='ols', shift_intensity=True,
-                                              clip_negative_vals=False, b0_threshold=50)
+                    denoised_arr = patch2self(
+                        dti_data, bvals, model = 'ols', shift_intensity = True,
+                        clip_negative_vals = False, b0_threshold = 50
+                        )
 
                     print("Removing Gibbs artifacts....")
-                    gibbs_corr = gibbs_removal(denoised_arr, slice_axis=2, num_processes=-1)
+                    gibbs_corr = gibbs_removal(denoised_arr, slice_axis = 2, num_processes = -1)
 
                     img = nib.Nifti1Image(gibbs_corr, affine, hdr)
                     nib.save(img, dti_out)
@@ -109,4 +114,7 @@ for i in list_dirs:
                     with open(b_file, 'w') as b0_file:
                         pass
 
-                    print("I finished processing %s_b%s_%s: It took me %s minutes" % (i, str(b_zero), date, (time.time() - start_time) / 60))
+                    print(
+                        "I finished processing %s_b%s_%s: It took me %s minutes" % (
+                        i, str(b_zero), date, (time.time() - start_time) / 60)
+                        )

@@ -1,6 +1,6 @@
-import os
 import json
-from os.path import join, exists, isdir
+import os
+from os.path import exists, isdir, join
 
 dir_patients = '/Volumes/txusser_data/IBIS_DATA/Reorder_New'
 
@@ -26,11 +26,7 @@ for i in list_dirs:
                 if not exists(pet_dir):
                     os.makedirs(pet_dir)
 
-                #pet_ = join(pet_dir, 'pet.img')
-                #os.system('niitoanalyze %s %s' % (pet_in, pet_))
-                #print("Created %s" % pet_)
-
-                json_file = join(pet_in[0:-3]+'json')
+                json_file = join(pet_in[0:-3] + 'json')
                 with open(json_file, 'r') as file:
                     data = json.load(file)
 

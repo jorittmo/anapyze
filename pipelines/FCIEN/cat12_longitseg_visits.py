@@ -1,36 +1,41 @@
 import warnings
+
 warnings.filterwarnings("ignore")
 
-import os,sys
-import shutil
-import gzip
-import nibabel as nib
-from os.path import join, exists, isdir, basename
-import numpy as np
-import time
+import os, sys
+from os.path import join, exists, isdir
 
 anapyze_dir = r'/home/procesadoneuroimagen/WORK/repos/anapyze'
 anapyze_rsc = join(anapyze_dir,'resources')
 sys.path.insert(0,anapyze_dir)
-from spm import SPM
+
+from anapyze_procesing.spm import CAT12
 
 # CONFIG
 #---------------------------------------------------------------------------------------------------------------
 dir_subjects = r'/media/procesadoneuroimagen/862A42592A424681'
+
+
+# CONFIG
+# ---------------------------------------------------------------------------------------------------------------
+dir_subjects = r'/Volumes/txusser_data/PVallecas/raws'
+
 
 # Standalone SPM Paths
 spm_path = r'/home/procesadoneuroimagen/WORK/software/CAT12.9_R2017b_MCR_Linux'
 mcr_path = r'/home/procesadoneuroimagen/WORK/software/CAT12.9_R2017b_MCR_Linux/v93'
 
 # Change your templates here if necessary \toolbox\cat12\templates_MNI152NLin2009cAsym
+
 tpm = r'/home/procesadoneuroimagen/WORK/software/spm12/tpm/TPM.nii'
 template_volumes = r'/home/procesadoneuroimagen/WORK/software/spm12/toolbox/cat12/templates_MNI152NLin2009cAsym/Template_0_GS.nii'
 #---------------------------------------------------------------------------------------------------------------
 
+
 list_subjects = os.listdir(dir_subjects)
 list_subjects.sort()
 
-#This will create a cat_12seg_longit.m
+# This will create a cat_12seg_longit.m
 images = []
 
 for subj in list_subjects:
@@ -39,7 +44,7 @@ for subj in list_subjects:
     subject = []
     check_cat_processing = []
 
-    dir_subj = join(dir_subjects,subj)
+    dir_subj = join(dir_subjects, subj)
 
     if isdir(dir_subj):
 
