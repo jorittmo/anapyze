@@ -438,10 +438,16 @@ class ADNI(object):
             ordered = filtered_composite.sort_values(by = ['EXAMDATE'], ascending = True)
 
             if date == 'baseline':
-                adni_mem = ordered['ADNI_MEM'].dropna().values[0]
-                adni_exec = ordered['ADNI_EF'].dropna().values[0]
-                adni_lan = ordered['ADNI_LAN'].dropna().values[0]
-                adni_vs = ordered['ADNI_VS'].dropna().values[0]
+                if not ordered['ADNI_MEM'].dropna().empty:
+                    adni_mem = ordered['ADNI_MEM'].dropna().values[0]
+                if not ordered['ADNI_EF'].dropna().empty:
+                    adni_exec = ordered['ADNI_EF'].dropna().values[0]
+                if not ordered['ADNI_LAN'].dropna().empty:
+                    adni_lan = ordered['ADNI_LAN'].dropna().values[0]
+                if not ordered['ADNI_VS'].dropna().empty:
+                    adni_vs = ordered['ADNI_VS'].dropna().values[0]
+
+
             elif date == 'last':
                 adni_mem = ordered['ADNI_MEM'].dropna().values[-1]
                 adni_exec = ordered['ADNI_EF'].dropna().values[-1]
