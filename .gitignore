@@ -170,3 +170,4 @@ resources/mask/gm_cat12_centered.nii
 pipelines/IBIS/normalize.m
 /.idea/
 .idea/workspace.xml
+*.nii
