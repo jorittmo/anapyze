@@ -73,6 +73,8 @@ class ADNI(object):
                         command = dcm2niix + '-o ' + output_ + ' -f fdg ' + input
                         os.system(command)
 
+
+
     @staticmethod
     def filter_mri_csv(mri_csv, output_csv):
         """
@@ -135,9 +137,11 @@ class ADNI(object):
                             descriptions.append(this_description)
 
                         accepted_descriptions = set(
-                                ['Accelerated SAG IR-SPGR', 'MPRAGE SENSE2', 'MPRAGE GRAPPA2',
-                                 'MPRAGE_GRAPPA2', 'Accelerated Sag IR-FSPGR', 'IR-SPGR w/acceleration'
-                                                                               'Accelerated Sagittal MPRAGE',
+                                ['Accelerated SAG IR-SPGR',
+                                 'MPRAGE SENSE2', 'MPRAGE GRAPPA2',
+                                 'MPRAGE_GRAPPA2',
+                                 'Accelerated Sag IR-FSPGR', 'IR-SPGR w/acceleration'
+                                 'Accelerated Sagittal MPRAGE',
                                  'Accelerated SAG IR-FSPGR',
                                  'Accelerated Sag IR-SPGR', 'Accelerated Sagittal MPRAGE',
                                  'MPRAGE SENSE2 SENSE', 'MPRAGE SENSE', 'Sagittal 3D Accelerated MPRAGE',
@@ -160,7 +164,7 @@ class ADNI(object):
                                  'REPEAT SAG 3D MP RAGE NO ANGLE', 'SAG 3D MPRAGE NO ANGLE',
                                  'SAG MPRAGE GRAPPA2 NO ANGLE', 'SAG MPRAGE NO ANGLE',
                                  'SAG MP-RAGE REPEAT', 'SAG MP-RAGE'
-                                                       'MT1; GradWarp; N3m <- IR-FSPGR', ]
+                                 'MT1; GradWarp; N3m <- IR-FSPGR', ]
                                 )
 
                         descriptions = set(descriptions)
