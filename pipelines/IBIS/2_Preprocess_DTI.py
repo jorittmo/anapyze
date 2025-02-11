@@ -20,6 +20,7 @@ The steps involve:
 The result is *dti_eddy_denoised.nii.gz* that is placed under the *dti_bXXX_date* directory
 """
 
+
 dir_patients = r'/mnt/d/IBIS_DATA/Reorder_New'
 
 from dipy.core.gradients import gradient_table
@@ -28,6 +29,8 @@ from dipy.denoise.patch2self import patch2self
 from dipy.denoise.gibbs import gibbs_removal
 
 list_dirs = os.listdir(dir_patients)
+
+
 
 for i in list_dirs:
 

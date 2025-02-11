@@ -5,30 +5,20 @@ warnings.filterwarnings("ignore")
 import os, sys
 from os.path import join, exists, isdir
 
-anapyze_dir = r'/home/procesadoneuroimagen/WORK/repos/anapyze'
+anapyze_dir = r'/mnt/WORK/repos/anapyze'
 anapyze_rsc = join(anapyze_dir,'resources')
 sys.path.insert(0,anapyze_dir)
 
-from anapyze_procesing.spm import CAT12
-
-# CONFIG
-#---------------------------------------------------------------------------------------------------------------
-dir_subjects = r'/media/procesadoneuroimagen/862A42592A424681'
-
+from anapyze_processing.spm import CAT12
 
 # CONFIG
 # ---------------------------------------------------------------------------------------------------------------
-dir_subjects = r'/Volumes/txusser_data/PVallecas/raws'
-
-
-# Standalone SPM Paths
-spm_path = r'/home/procesadoneuroimagen/WORK/software/CAT12.9_R2017b_MCR_Linux'
-mcr_path = r'/home/procesadoneuroimagen/WORK/software/CAT12.9_R2017b_MCR_Linux/v93'
+dir_subjects = r'/mnt/nasneuro_share/data/raws/PVallecas/niftis'
 
 # Change your templates here if necessary \toolbox\cat12\templates_MNI152NLin2009cAsym
 
-tpm = r'/home/procesadoneuroimagen/WORK/software/spm12/tpm/TPM.nii'
-template_volumes = r'/home/procesadoneuroimagen/WORK/software/spm12/toolbox/cat12/templates_MNI152NLin2009cAsym/Template_0_GS.nii'
+tpm = r'/mnt/WORK/software/spm12/tpm/TPM.nii'
+template_volumes = r'/mnt/WORK/software/spm12/toolbox/cat12/templates_MNI152NLin2009cAsym/Template_0_GS.nii'
 #---------------------------------------------------------------------------------------------------------------
 
 
@@ -51,7 +41,7 @@ for subj in list_subjects:
         list_visits = os.listdir(dir_subj)
         list_visits.sort()
 
-        if len(list_visits)>2:
+        if len(list_visits)>1:
 
             for visit in list_visits:
 
