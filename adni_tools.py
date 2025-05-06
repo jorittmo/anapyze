@@ -43,12 +43,12 @@ class ADNI(object):
         self.wmh_df = pd.read_csv(wmh_csv)
 
     @staticmethod
-    def reorder_adni_data(input_dir, output_dir, dcm2niix = r'dcm2niix'):
+    def _adni_data(input_dir, output_dir, dcm2niix = r'dcm2niix'):
         """
-        Reorders the ADNI data based on the input directory and output directory.
+        s the ADNI data based on the input directory and output directory.
 
         :param input_dir: The directory where the input data is located.
-        :param output_dir: The directory where the reordered data will be saved.
+        :param output_dir: The directory where the ed data will be saved.
         :param dcm2niix: The path to the dcm2niix tool.
         """
 
