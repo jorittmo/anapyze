@@ -1,11 +1,11 @@
-# Anapyze Processing
+# Anapyze
 
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![GitHub issues](https://img.shields.io/github/issues/Fundacion-CIEN/anapyze)](https://github.com/Fundacion-CIEN/anapyze/issues)
 [![Last Commit](https://img.shields.io/github/last-commit/Fundacion-CIEN/anapyze)](https://github.com/Fundacion-CIEN/anapyze/commits/main)
 
-**Anapyze Processing** is a modular Python package providing end-to-end neuroimaging utilities—ranging from core image-processing routines to statistical analysis workflows and I/O wrappers for popular software (SPM, CAT12, FreeSurfer, etc.). 
+**Anapyze** is a modular Python package providing end-to-end neuroimaging utilities—ranging from core image-processing routines to statistical analysis workflows and I/O wrappers for popular software (SPM, CAT12, FreeSurfer, etc.). 
 
 
 ## Table of Contents
