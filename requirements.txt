@@ -1,14 +1,10 @@
 dipy
-lifelines
 matplotlib
 nibabel
 nilearn
 numpy
 pandas
-pathlib
-pingouin
 pwlf
-scikit-learn
 scipy
-typing
 xmltodict
+python-dateutil

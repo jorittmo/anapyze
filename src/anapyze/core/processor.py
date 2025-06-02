@@ -5,8 +5,8 @@ import os
 from os.path import join, exists
 from concurrent.futures import ThreadPoolExecutor
 
-from io import spm
-from io import cat12
+from anapyze.io import spm
+from anapyze.io import cat12
 
 
 def run_matlab_command(mfile, matlab_cmd="/Applications/MATLAB_R2023b.app/bin/matlab"):

@@ -3,14 +3,37 @@ import nibabel as nib
 from scipy.stats import pearsonr, spearmanr
 
 def voxel_wise_corr_images_vs_scale(images, scale, mask, corr = "pearson"):
-    """Calculates the pearson correlation coefficient and p-value between images and scalars
-    (i.e. a neuropsychological scale) for each voxel in the mask image.
-    :param images: a list of paths for the images
-    :param scale: a list of scale values
-    :param mask: the path to the mask image
-    :param output_rs: the path to the output file for the correlation coefficients
-    :param output_ps: the path to the output file for the p-values
-    :param corr: the type of correlation coefficient to calculate (pearson, spearman)
+    """
+    Computes voxel-wise correlation between a list of 3D NIfTI images and a set of scalar values.
+
+    Parameters
+    ----------
+    images : List[nibabel.Nifti1Image]
+        List of loaded NIfTI image objects (all must have the same shape and affine). Each element
+        represents a subject’s image for which you want to correlate voxel intensities with the
+        provided scale values.
+    scale : Sequence[float]
+        A sequence of numeric values (e.g., neuropsychological test scores) of the same length as
+        `images`. Each entry corresponds to the scalar value for the subject of the same index
+        in `images`.
+    mask : nibabel.Nifti1Image
+        A binary NIfTI image whose nonzero voxels define the mask region. Correlation is computed
+        only for voxels where `mask.get_fdata() != 0`. Must have the same spatial dimensions as
+        the images in `images`.
+    corr : {"pearson", "spearman"}, default "pearson"
+        Specifies which correlation coefficient to compute at each voxel:
+        - `"pearson"`: Pearson’s r and two-tailed p-value via `scipy.stats.pearsonr`.
+        - `"spearman"`: Spearman’s rho and two-tailed p-value via `scipy.stats.spearmanr`.
+
+    Returns
+    -------
+    corr_r_img : nibabel.Nifti1Image
+        A NIfTI image where each voxel contains the correlation coefficient (r or rho) between
+        the intensity values across subjects and the corresponding `scale` values. Voxels outside
+        the mask are set to zero.
+    corr_p_img : nibabel.Nifti1Image
+        A NIfTI image where each voxel contains the two-tailed p-value associated with the
+        computed correlation. Voxels outside the mask are set to zero.
     """
 
     mask_data =  mask.get_fdata()
@@ -61,14 +84,27 @@ def voxel_wise_corr_images_vs_scale(images, scale, mask, corr = "pearson"):
     return corr_r_img, corr_p_img
     
 def image_to_image_corr_atlas_based_spearman(image_1, image_2, atlas):
-    """Calculates the spearman correlation coefficient and p-value between two images using
-    the atlas ROI-values extracted for each region of interest (ROI) defined by an atlas.
+    """
+    Calculates the Spearman correlation coefficient and p-value between two 3D NIfTI images
+    by averaging voxel intensities within each ROI defined by an atlas.
 
-    :param image_1: the path to the first image
-    :param image_2: the path to the second image
-    :param atlas: the path to the atlas image that defines the ROIs
-    :return rho: correlation coefficient
-    :return p: p-value
+    Parameters
+    ----------
+    image_1 : nibabel.Nifti1Image
+        First input NIfTI image. Must share the same spatial dimensions and affine with
+        `image_2` and `atlas`.
+    image_2 : nibabel.Nifti1Image
+        Second input NIfTI image. Must align with `image_1` and `atlas`.
+    atlas : nibabel.Nifti1Image
+        Atlas NIfTI image defining ROIs. Nonzero integer labels indicate distinct regions;
+        voxels labeled 0 are treated as background and ignored.
+
+    Returns
+    -------
+    rho : float
+        Spearman correlation coefficient between the mean ROI values of `image_1` and `image_2`.
+    p : float
+        Two‐tailed p‐value associated with the computed Spearman correlation.
     """
 
     # Load the two images + atlas using nibabel library
@@ -105,10 +141,23 @@ def image_to_image_corr_atlas_based_spearman(image_1, image_2, atlas):
 
 def normalized_cross_correlation_2images(img1, img2, no_zeros = True):
     """
-    Calculates the normalized cross correlation (NCC) between two images.
-    :param img1_path: the path to the first image
-    :param img2_path: the path to the second image
-    :return: the NCC value between the two images
+    Computes the Normalized Cross-Correlation (NCC) between two 3D NIfTI images.
+
+    Parameters
+    ----------
+    img1 : nibabel.Nifti1Image
+        First input NIfTI image. Must have the same dimensions as `img2`.
+    img2 : nibabel.Nifti1Image
+        Second input NIfTI image. Must have the same dimensions as `img1`.
+    no_zeros : bool, default True
+        If True, only voxels where both images are nonzero will be included in the calculation.
+        If False, all voxels (including zeros) are used.
+
+    Returns
+    -------
+    float
+        The normalized cross-correlation coefficient between `img1` and `img2`. Value range is
+        between -1 and 1.
     """
 
     # Load Nifti images
