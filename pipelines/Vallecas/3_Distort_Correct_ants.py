@@ -1,15 +1,13 @@
 import warnings
-
-warnings.filterwarnings("ignore")
-
-import os,shutil
-
+import os
 import nibabel as nib
 from os.path import join, exists, isdir
 import numpy as np
 import time
 from scipy.ndimage import binary_closing, gaussian_filter,binary_fill_holes
 import nilearn.image as proc
+
+warnings.filterwarnings("ignore")
 
 """
 This script corrects distortions in the DTI data using 'dipy', 'nilearn', and 'nibabel' libraries along with ANTs software. 

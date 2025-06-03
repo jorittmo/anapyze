@@ -1,34 +1,25 @@
-import warnings, os
+import warnings
 import pandas as pd
-from os.path import join,exists
 import nibabel as nib
-
+import os, sys
+from os.path import join, exists
 import shutil
+from anapyze.core import processor
 
 warnings.filterwarnings("ignore")
 
-import os, sys
-from os.path import join, exists, isdir
-
-anapyze_dir = r'/mnt/WORK/repos/anapyze'
-anapyze_rsc = join(anapyze_dir,'resources')
-sys.path.insert(0,anapyze_dir)
-
-from anapyze_processing.spm import CAT12
-
 csv = '/mnt/nasneuro_share/analysis/jsilva/dataframe_ptau217.csv'
+mfile_name = '/mnt/nasneuro_share/analysis/jsilva/cat12_crossec.m'
+
 df = pd.read_csv(csv,sep=';')
 
 df_baseline = df.loc[df['mri_bl']==1]
-
 
 # CONFIG
 #---------------------------------------------------------------------------------------------------------------
 dir_subjects = r'/mnt/nasneuro_share/data/derivatives/CAT12/PVallecas'
 baseline_dir = r'/mnt/nasneuro_share/data/derivatives/CAT12_baseline'
 
-spm_path = '/mnt/WORK/software'
-mcr_path = '/mnt/WORK/software'
 
 # Change your templates here if necessary \toolbox\cat12\templates_MNI152NLin2009cAsym
 
@@ -85,9 +76,10 @@ for index_, row_ in df_baseline.iterrows():
     else:
         print(f"Final GM already exists: {fsubject}")
 
-spm_proc = CAT12(spm_path=spm_path,mcr_path=mcr_path)
-
-cat_12_cross = spm_proc.cat12seg_imgs(imgs_to_segment, tpm, template_volumes, number_of_cores = 12, surface_processing=0, run=False)
+processor.cat12_segmentation_crossec(imgs_to_segment, mfile_name,
+                                      template_tpm = tpm, template_volumes = template_volumes,
+                                      output_vox_size = 1.5, bounding_box = "cat12", surface_processing = 0,
+                                      spm_path="/mnt/WORK/software/spm12")
 
 
 

@@ -1,26 +1,21 @@
 import warnings
+import os, sys
+from os.path import join, exists, isdir
+from anapyze.core import processor
 
 warnings.filterwarnings("ignore")
 
-import os, sys
-from os.path import join, exists, isdir
-
-anapyze_dir = r'/mnt/WORK/repos/anapyze'
-anapyze_rsc = join(anapyze_dir,'resources')
-sys.path.insert(0,anapyze_dir)
-
-from anapyze_processing.spm import CAT12
 
 # CONFIG
 # ---------------------------------------------------------------------------------------------------------------
 dir_subjects = r'/mnt/nasneuro_share/data/raws/PVallecas/niftis'
+mfile_name = '/mnt/nasneuro_share/analysis/jsilva/cat12_longit.m'
 
 # Change your templates here if necessary \toolbox\cat12\templates_MNI152NLin2009cAsym
-
-tpm = r'/mnt/WORK/software/spm12/tpm/TPM.nii'
-template_volumes = r'/mnt/WORK/software/spm12/toolbox/cat12/templates_MNI152NLin2009cAsym/Template_0_GS.nii'
+spm_path = r'/mnt/WORK/software/spm12'
+tpm = join(spm_path,'tpm','TPM.nii')
+template_volumes = join(spm_path,'toolbox','cat12','templates_MNI152NLin2009cAsym','Template_0_GS.nii')
 #---------------------------------------------------------------------------------------------------------------
-
 
 list_subjects = os.listdir(dir_subjects)
 list_subjects.sort()
@@ -67,5 +62,6 @@ for subj in list_subjects:
                 images.append(subject)
                 print("New images found for subject!!")
 
-spm_proc = SPM(spm_path=spm_path,mcr_path=mcr_path)
-cat_12_proc = spm_proc.cat12seg_longit(images, tpm, template_volumes, number_of_cores = 12, surface_processing=0, run=False)
+processor.cat12_segmentation_longit(images, mfile_name, template_tpm = tpm, template_volumes = template_volumes,
+                              output_vox_size = 1.5, bounding_box = "cat12", surface_processing = 0,
+                              spm_path=spm_path)
